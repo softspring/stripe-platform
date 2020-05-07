@@ -1,5 +1,5 @@
 {
-    "name": "softspring/stripe-plaftorm",
+    "name": "softspring/stripe-platform",
     "description": "This bundle provides customer features.",
     "license": "MIT",
     "require": {
