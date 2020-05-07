@@ -9,7 +9,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Softspring\\StripePlatform\\": ""
+            "Softspring\\Platform\\Stripe\\": ""
         },
         "exclude-from-classmap": [
             "/tests/"
@@ -17,7 +17,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Softspring\\StripePlatform\\Tests\\": "tests/"
+            "Softspring\\Platform\\Stripe\\Tests\\": "tests/"
         }
     },
     "extra": {
