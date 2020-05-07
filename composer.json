@@ -5,7 +5,7 @@
     "require": {
         "php": "^7.1",
         "softspring/platform-bundle": "^1.0@dev",
-        "stripe/stripe-php": "^7.31",
+        "stripe/stripe-php": "^7.31"
     },
     "autoload": {
         "psr-4": {
