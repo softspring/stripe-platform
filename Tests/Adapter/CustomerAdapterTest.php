@@ -1,15 +1,13 @@
 <?php
 
-namespace Softspring\PlatformBundle\Tests\Manager\Adapter\Stripe;
+namespace Softspring\PlatformBundle\Stripe\Tests\Adapter;
 
-use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
-use Softspring\PlatformBundle\Platform\Adapter\Stripe\CustomerAdapter;
-use Softspring\PlatformBundle\Exception\PlatformException;
-use Softspring\PlatformBundle\Tests\Model\Examples\AddressExample;
-use Softspring\PlatformBundle\Tests\Model\Examples\CustomerBaseExample;
-use Softspring\PlatformBundle\Tests\Model\Examples\CustomerFullExample;
-use Stripe\Exception\ApiConnectionException;
-use Stripe\Exception\InvalidRequestException;
+use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
+use Softspring\PlatformBundle\Stripe\Client\StripeClient;
+use Softspring\PlatformBundle\Stripe\Client\StripeClientProvider;
+use Softspring\PlatformBundle\Stripe\Tests\Examples\CustomerBaseExample;
+use Softspring\PlatformBundle\Stripe\Transformer\CustomerTransformer;
+use Stripe\Customer;
 
 class CustomerAdapterTest extends AbstractStripeAdapterTest
 {
@@ -18,12 +16,24 @@ class CustomerAdapterTest extends AbstractStripeAdapterTest
      */
     protected $adapter;
 
+    /**
+     * @var StripeClientProvider
+     */
+    protected $stripeClientProvider;
+
+    /**
+     * @var StripeClient
+     */
+    protected $stripeClient;
+
     protected function setUp(): void
     {
-        $this->adapter = $this->getMockBuilder(CustomerAdapter::class)
-            ->setConstructorArgs(['sk_test_xxx', null, null])
-            ->onlyMethods(['initStripe', 'stripeClientCreate', 'stripeClientRetrieve', 'stripeClientTaxIdCreate', 'stripeClientTaxIdDelete'])
-            ->getMock();
+        $this->stripeClient = $this->createMock(StripeClient::class);
+
+        $this->stripeClientProvider = $this->createMock(StripeClientProvider::class);
+        $this->stripeClientProvider->method('getClient')->willReturn($this->stripeClient);
+
+        $this->adapter = new CustomerAdapter($this->stripeClientProvider, new CustomerTransformer(), null);
     }
 
     public function testGetExisting()
@@ -31,31 +41,18 @@ class CustomerAdapterTest extends AbstractStripeAdapterTest
         $customer = new CustomerBaseExample();
         $customer->setPlatformId('cus_test');
 
-        $this->adapter->method('stripeClientRetrieve')->will($this->returnValue($this->createStripeCustomerObject([
+        $this->stripeClient->method('customerRetrieve')->will($this->returnValue($this->createStripeCustomerObject([
             'id' => 'cus_test',
             'livemode' => false,
             'created' => ($created = new \DateTime('now'))->format('U'),
         ])));
 
-        $this->adapter->get($customer);
+        $stripeCustomer = $this->adapter->get($customer);
+        $this->assertInstanceOf(Customer::class, $stripeCustomer);
         $this->assertEquals('cus_test', $customer->getPlatformId());
         $this->assertEquals(true, $customer->isTestMode());
         $this->assertEquals(false, $customer->isPlatformConflict());
         $this->assertEquals($created->format('Y-m-d H:i:s'), $customer->getPlatformLastSync()->format('Y-m-d H:i:s'));
-    }
-
-    public function testGetMissing()
-    {
-        $this->expectException(NotFoundInPlatform::class);
-
-        $customer = new CustomerBaseExample();
-        $customer->setPlatformId('cus_test_not_existing');
-
-        $e = new InvalidRequestException();
-        $e->setStripeCode('resource_missing');
-        $this->adapter->method('stripeClientRetrieve')->will($this->throwException($e));
-
-        $this->adapter->get($customer);
     }
 
     public function testCreate()
@@ -79,14 +76,14 @@ class CustomerAdapterTest extends AbstractStripeAdapterTest
             ],
         ]);
 
-        $this->adapter->method('stripeClientCreate')->will($this->returnValue($this->createStripeCustomerObject([
+        $this->stripeClient->method('customerCreate')->will($this->returnValue($this->createStripeCustomerObject([
             'id' => 'cus_test',
             'livemode' => false,
             'created' => ($created = new \DateTime('now'))->format('U'),
             'tax_ids' => $this->createStripeCollectionObject([$taxIdMockObject]),
         ])));
 
-        $this->adapter->method('stripeClientTaxIdCreate')->will($this->returnValue($taxIdMockObject));
+        $this->stripeClient->method('customerTaxIdCreate')->will($this->returnValue($taxIdMockObject));
 
         $this->adapter->create($customer);
         $this->assertEquals('cus_test', $customer->getPlatformId());
@@ -95,78 +92,6 @@ class CustomerAdapterTest extends AbstractStripeAdapterTest
         $this->assertEquals($created->format('Y-m-d H:i:s'), $customer->getPlatformLastSync()->format('Y-m-d H:i:s'));
     }
 
-    public function testCreateNotSpain()
-    {
-        $customer = new CustomerBaseExample();
-        $customer->setTaxIdCountry('IT');
-        $customer->setTaxIdNumber('000000000X');
-
-        $this->adapter->method('stripeClientCreate')->will($this->returnValue($this->createStripeCustomerObject([
-            'id' => 'cus_test',
-            'livemode' => false,
-            'created' => ($created = new \DateTime('now'))->format('U'),
-            'tax_ids' => $this->createStripeCollectionObject([]),
-        ])));
-
-        $this->adapter->method('stripeClientTaxIdCreate')->will($this->returnValue($this->createStripeTaxIdObject([
-            'id' => 'tax',
-        ])));
-
-        $this->adapter->create($customer);
-        $this->assertEquals('cus_test', $customer->getPlatformId());
-        $this->assertEquals(true, $customer->isTestMode());
-        $this->assertEquals(false, $customer->isPlatformConflict());
-        $this->assertEquals($created->format('Y-m-d H:i:s'), $customer->getPlatformLastSync()->format('Y-m-d H:i:s'));
-    }
-
-    public function testCreateWithError()
-    {
-        $this->expectException(PlatformException::class);
-
-        $customer = new CustomerBaseExample();
-        $customer->setPlatformId('cus_test');
-
-        $e = new ApiConnectionException();
-        $this->adapter->method('stripeClientCreate')->will($this->throwException($e));
-
-        $this->adapter->create($customer);
-    }
-
-    public function testCreateFull()
-    {
-        $customer = new CustomerFullExample();
-        $customer->setTaxIdCountry('ES');
-        $customer->setTaxIdNumber('000000000X');
-        $customer->setEmail('test@example.com');
-        $address = new AddressExample();
-        $address->setName('Juan');
-        $address->setSurname('González Pérez');
-        $address->setStreetAddress('C/ Gran Vía 1');
-        $address->setExtendedAddress('Piso 66, puerta Z');
-        $address->setPostalCode('28000');
-        $address->setLocality('Zaragoza');
-        $address->setRegion('Zaragoza');
-        $address->setCountryCode('ES');
-        $address->setTel('9001231234');
-        $customer->setBillingAddress($address);
-
-        $this->adapter->method('stripeClientCreate')->will($this->returnValue($this->createStripeCustomerObject([
-            'id' => 'cus_test',
-            'livemode' => false,
-            'created' => ($created = new \DateTime('now'))->format('U'),
-            'tax_ids' => $this->createStripeCollectionObject([]),
-        ])));
-
-        $this->adapter->method('stripeClientTaxIdCreate')->will($this->returnValue($this->createStripeTaxIdObject([
-            'id' => 'tax',
-        ])));
-
-        $this->adapter->create($customer);
-        $this->assertEquals('cus_test', $customer->getPlatformId());
-        $this->assertEquals(true, $customer->isTestMode());
-        $this->assertEquals(false, $customer->isPlatformConflict());
-        $this->assertEquals($created->format('Y-m-d H:i:s'), $customer->getPlatformLastSync()->format('Y-m-d H:i:s'));
-    }
 
     public function testDelete()
     {
@@ -179,22 +104,9 @@ class CustomerAdapterTest extends AbstractStripeAdapterTest
             'created' => ($created = new \DateTime('now'))->format('U'),
         ]);
 
-        $object->expects($this->once())->method('delete');
+        $this->stripeClient->expects($this->once())->method('delete');
 
-        $this->adapter->method('stripeClientRetrieve')->will($this->returnValue($object));
-
-        $this->adapter->delete($customer);
-    }
-
-    public function testDeleteWithError()
-    {
-        $this->expectException(PlatformException::class);
-
-        $customer = new CustomerBaseExample();
-        $customer->setPlatformId('cus_test');
-
-        $e = new ApiConnectionException();
-        $this->adapter->method('stripeClientRetrieve')->will($this->throwException($e));
+        $this->stripeClient->method('customerRetrieve')->will($this->returnValue($object));
 
         $this->adapter->delete($customer);
     }
@@ -210,23 +122,9 @@ class CustomerAdapterTest extends AbstractStripeAdapterTest
             'created' => ($created = new \DateTime('now'))->format('U'),
         ]);
 
-        $object->expects($this->once())->method('save');
+        $this->stripeClient->expects($this->once())->method('save');
 
-        $this->adapter->method('stripeClientRetrieve')->will($this->returnValue($object));
-
-        $this->adapter->update($customer);
-    }
-
-    public function testUpdateMissing()
-    {
-        $this->expectException(NotFoundInPlatform::class);
-
-        $customer = new CustomerBaseExample();
-        $customer->setPlatformId('cus_test_not_existing');
-
-        $e = new InvalidRequestException();
-        $e->setStripeCode('resource_missing');
-        $this->adapter->method('stripeClientRetrieve')->will($this->throwException($e));
+        $this->stripeClient->method('customerRetrieve')->will($this->returnValue($object));
 
         $this->adapter->update($customer);
     }

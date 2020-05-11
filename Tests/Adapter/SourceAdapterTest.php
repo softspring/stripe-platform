@@ -1,13 +1,17 @@
 <?php
 
-namespace Softspring\PlatformBundle\Tests\Manager\Adapter\Stripe;
+namespace Softspring\PlatformBundle\Stripe\Tests\Adapter;
 
-use Softspring\PlatformBundle\Platform\Adapter\Stripe\CustomerAdapter;
-use Softspring\PlatformBundle\Platform\Adapter\Stripe\SourceAdapter;
 use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
 use Softspring\PlatformBundle\Exception\PlatformException;
-use Softspring\PlatformBundle\Tests\Model\Examples\CustomerBaseExample;
-use Softspring\PlatformBundle\Tests\Model\Examples\SourceExample;
+use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
+use Softspring\PlatformBundle\Stripe\Adapter\SourceAdapter;
+use Softspring\PlatformBundle\Stripe\Client\StripeClient;
+use Softspring\PlatformBundle\Stripe\Client\StripeClientProvider;
+use Softspring\PlatformBundle\Stripe\Tests\Examples\CustomerBaseExample;
+use Softspring\PlatformBundle\Stripe\Tests\Examples\SourceExample;
+use Softspring\PlatformBundle\Stripe\Transformer\CustomerTransformer;
+use Softspring\PlatformBundle\Stripe\Transformer\SourceTransformer;
 use Stripe\Collection;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\InvalidRequestException;
@@ -25,19 +29,26 @@ class SourceAdapterTest extends AbstractStripeAdapterTest
      */
     protected $sourcesAdapter;
 
+    /**
+     * @var StripeClientProvider
+     */
+    protected $stripeClientProvider;
+
+    /**
+     * @var StripeClient
+     */
+    protected $stripeClient;
+
     protected function setUp(): void
     {
-        $this->customerAdapter = $this->getMockBuilder(CustomerAdapter::class)
-            ->setConstructorArgs(['sk_test_xxx', null, null])
-            ->onlyMethods(['initStripe', 'stripeClientCreate', 'stripeClientRetrieve', 'stripeClientTaxIdCreate', 'stripeClientTaxIdDelete'])
-            ->getMock();
+        $this->stripeClient = $this->createMock(StripeClient::class);
 
-        $this->sourcesAdapter = $this->getMockBuilder(SourceAdapter::class)
-            ->setConstructorArgs([$this->customerAdapter, 'sk_test_xxx', null, null])
-            ->onlyMethods(['initStripe', 'stripeClientRetrieve'])
-            ->getMock();
+        $this->stripeClientProvider = $this->createMock(StripeClientProvider::class);
+        $this->stripeClientProvider->method('getClient')->willReturn($this->stripeClient);
+
+        $this->customerAdapter = new CustomerAdapter($this->stripeClientProvider, new CustomerTransformer(), null);
+        $this->sourcesAdapter = new SourceAdapter($this->customerAdapter, $this->stripeClientProvider, new SourceTransformer(), null);
     }
-
 
     public function testGetExisting()
     {
@@ -47,9 +58,10 @@ class SourceAdapterTest extends AbstractStripeAdapterTest
         $customer->setPlatformId('cus_test');
         $source->setCustomer($customer);
 
-        $this->sourcesAdapter->method('stripeClientRetrieve')->will($this->returnValue($this->createStripeObject(Source::class, [
+        $this->stripeClient->method('sourceRetrieve')->will($this->returnValue($this->createStripeObject(Source::class, [
             'id' => 'src_test',
             'livemode' => false,
+            'created' => (new \DateTime('now'))->format('U'),
         ])));
 
         $this->sourcesAdapter->get($source);
@@ -57,24 +69,6 @@ class SourceAdapterTest extends AbstractStripeAdapterTest
         $this->assertEquals(true, $source->isTestMode());
         $this->assertEquals(false, $source->isPlatformConflict());
     }
-
-    public function testGetMissing()
-    {
-        $this->expectException(NotFoundInPlatform::class);
-
-        $source = new SourceExample();
-        $source->setPlatformId('src_test_not_existing');
-        $customer = new CustomerBaseExample();
-        $customer->setPlatformId('cus_test');
-        $source->setCustomer($customer);
-
-        $e = new InvalidRequestException();
-        $e->setStripeCode('resource_missing');
-        $this->sourcesAdapter->method('stripeClientRetrieve')->will($this->throwException($e));
-
-        $this->sourcesAdapter->get($source);
-    }
-
 
     public function testCreate()
     {
@@ -83,21 +77,21 @@ class SourceAdapterTest extends AbstractStripeAdapterTest
         $source = new SourceExample();
         $customer->addSource($source);
         $customer->setDefaultSource($source);
+        $source->setPlatformToken('token');
 
-        $this->customerAdapter->method('stripeClientRetrieve')->will($this->returnValue($this->createStripeCustomerObject([
+        $this->stripeClient->method('customerRetrieve')->will($this->returnValue($this->createStripeCustomerObject([
             'id' => 'cus_test',
             'livemode' => false,
             'created' => (new \DateTime('now'))->format('U'),
             'default_source' => null,
             'sources' => $this->createStripeObject(Collection::class, [], [
-                'create' => function ($a) {
-                    return $this->createStripeObject(Source::class, [
-                        'id' => 'src_test',
-                        'livemode' => false,
-                        'created' => (new \DateTime('now'))->format('U'),
-                    ]);
-                }
             ])
+        ])));
+
+        $this->stripeClient->method('sourceCreate')->will($this->returnValue($this->createStripeObject(Source::class, [
+            'id' => 'src_test',
+            'livemode' => false,
+            'created' => (new \DateTime('now'))->format('U'),
         ])));
 
         $this->sourcesAdapter->create($source);
@@ -105,22 +99,6 @@ class SourceAdapterTest extends AbstractStripeAdapterTest
         $this->assertEquals('src_test', $source->getPlatformId());
         $this->assertEquals(true, $source->isTestMode());
         $this->assertEquals(false, $source->isPlatformConflict());
-    }
-
-    public function testCreateWithError()
-    {
-        $this->expectException(PlatformException::class);
-
-        $customer = new CustomerBaseExample();
-        $customer->setPlatformId('cus_test');
-        $source = new SourceExample();
-        $customer->addSource($source);
-        $customer->setDefaultSource($source);
-
-        $e = new ApiConnectionException();
-        $this->customerAdapter->method('stripeClientRetrieve')->will($this->throwException($e));
-
-        $this->sourcesAdapter->create($source);
     }
 
     public function testCreateWithInvalidCustomer()

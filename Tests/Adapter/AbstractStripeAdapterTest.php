@@ -1,6 +1,6 @@
 <?php
 
-namespace Softspring\PlatformBundle\Tests\Manager\Adapter\Stripe;
+namespace Softspring\PlatformBundle\Stripe\Tests\Adapter;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;

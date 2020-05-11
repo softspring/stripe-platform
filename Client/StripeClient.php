@@ -9,10 +9,12 @@ use Softspring\PlatformBundle\Exception\PaymentException;
 use Softspring\PlatformBundle\Exception\PlatformException;
 use Stripe\ApiOperations\Delete;
 use Stripe\ApiOperations\Update;
+use Stripe\Card;
 use Stripe\Customer;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
+use Stripe\Source;
 use Stripe\Stripe;
 use Stripe\TaxId;
 
@@ -85,6 +87,37 @@ class StripeClient
         } catch (\Exception $e) {
             throw $this->transformException($e);
         }
+    }
+
+    /**
+     * @param      $customerId
+     * @param      $id
+     * @param null $params
+     * @param null $opts
+     *
+     * @return \Stripe\AlipayAccount|\Stripe\BankAccount|\Stripe\BitcoinReceiver|Card|Source
+     * @throws \Exception
+     */
+    public function sourceRetrieve($customerId, $id, $params = null, $opts = null)
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Customer::retrieveSource($customerId, $id, $params, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    /**
+     * @param Customer $customer
+     * @param null     $params
+     * @param null     $opts
+     *
+     * @return array|\Stripe\StripeObject
+     */
+    public function sourceCreate(Customer $customer, $params = null, $opts = null)
+    {
+        return $customer->sources->create($params, $opts);
     }
 
     /**
