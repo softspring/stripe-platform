@@ -51,13 +51,9 @@ abstract class AbstractStripeAdapterTest extends TestCase
 
     protected function createStripeCollectionObject(array $objects, bool $hasMore = false)
     {
-        $collection = $this->createStripeObject(Collection::class, ['has_more' => $hasMore]);
+        $collection = $this->createStripeObject(Collection::class, ['has_more' => $hasMore, 'data' => $objects]);
 
         $collection->method('getIterator')->willReturn(new \ArrayIterator($objects));
-        $collection->method('__get')->with('data')->willReturn($objects);
-        $collection->method('offsetGet')->willReturnCallback(function ($k) use ($objects) {
-            return $objects[$k];
-        });
 
         return $collection;
     }
