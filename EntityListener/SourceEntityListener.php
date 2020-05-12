@@ -8,6 +8,8 @@ use Softspring\CustomerBundle\Model\SourceInterface;
 use Softspring\PlatformBundle\Adapter\CustomerAdapterInterface;
 use Softspring\PlatformBundle\Adapter\SourceAdapterInterface;
 use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
+use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
+use Softspring\PlatformBundle\Stripe\Adapter\SourceAdapter;
 
 class SourceEntityListener
 {
@@ -22,12 +24,12 @@ class SourceEntityListener
     protected $sourceAdapter;
 
     /**
-     * StripeSourceEntityListener constructor.
+     * SourceEntityListener constructor.
      *
-     * @param CustomerAdapterInterface $customerAdapter
-     * @param SourceAdapterInterface   $sourceAdapter
+     * @param CustomerAdapter $customerAdapter
+     * @param SourceAdapter   $sourceAdapter
      */
-    public function __construct(CustomerAdapterInterface $customerAdapter, SourceAdapterInterface $sourceAdapter)
+    public function __construct(CustomerAdapter $customerAdapter, SourceAdapter $sourceAdapter)
     {
         $this->customerAdapter = $customerAdapter;
         $this->sourceAdapter = $sourceAdapter;

@@ -16,6 +16,7 @@ use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
 use Stripe\Source;
 use Stripe\Stripe;
+use Stripe\Subscription;
 use Stripe\TaxId;
 
 class StripeClient
@@ -47,6 +48,36 @@ class StripeClient
         $this->apiSecretKey = $apiSecretKey;
         $this->webhookSigningSecret = $webhookSigningSecret;
         $this->logger = $logger;
+    }
+
+    public function subscriptionCreate($params = null, $options = null): Subscription
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Subscription::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function subscriptionRetrieve($id, $opts = null): Subscription
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Subscription::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function subscriptionCancel(Subscription $subscription, $params = null, $options = null): Subscription
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return $subscription->cancel($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
     }
 
     public function customerCreate($params = null, $options = null): Customer
@@ -152,12 +183,7 @@ class StripeClient
         }
     }
 
-    /**
-     * @param \Throwable $e
-     *
-     * @return \Exception
-     */
-    protected function transformException(\Throwable $e): \Exception
+    protected function transformException(\Throwable $e): PlatformException
     {
         if ($e instanceof PlatformException) {
             return $e;

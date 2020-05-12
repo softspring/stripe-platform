@@ -3,8 +3,9 @@
 namespace Softspring\PlatformBundle\Stripe\Transformer;
 
 use Softspring\PlatformBundle\Exception\TransformException;
-use Softspring\PlatformBundle\PlatformInterface;
+use Softspring\PlatformBundle\Model\PlatformObjectInterface;
 use Softspring\PlatformBundle\Transformer\PlatformTransformerInterface;
+use Stripe\StripeObject;
 
 abstract class AbstractPlatformTransformer implements PlatformTransformerInterface
 {
@@ -16,7 +17,22 @@ abstract class AbstractPlatformTransformer implements PlatformTransformerInterfa
     protected function checkSupports($dbObject)
     {
         if (!$this->supports($dbObject)) {
-            throw new TransformException(PlatformInterface::PLATFORM_STRIPE, sprintf('%s object is not supported by %s', get_class($dbObject), self::class));
+            throw new TransformException('stripe', sprintf('%s object is not supported by %s', get_class($dbObject), self::class));
         }
+    }
+
+    protected function reverseTransformPlatformObject(PlatformObjectInterface $platformObject, StripeObject $stripeObject)
+    {
+        $platformObject->setPlatformId($stripeObject->id);
+
+        if (isset($stripeObject->livemode)) {
+            $platformObject->setTestMode(!$stripeObject->livemode);
+        }
+
+        if (isset($stripeObject->created)) {
+            $platformObject->setPlatformLastSync(\DateTime::createFromFormat('U', $stripeObject->created)); // TODO update last sync date
+        }
+        $platformObject->setPlatformConflict(false);
+        $platformObject->setPlatformData($stripeObject->toArray());
     }
 }

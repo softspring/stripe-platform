@@ -2,444 +2,174 @@
 
 namespace Softspring\PlatformBundle\Stripe\Adapter;
 
+use Psr\Log\LoggerInterface;
 use Softspring\PlatformBundle\Adapter\SubscriptionAdapterInterface;
 use Softspring\PlatformBundle\Exception\PlatformException;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
-use Softspring\PlatformBundle\PlatformInterface;
-use Softspring\SubscriptionBundle\Manager\PlanManagerInterface;
-use Softspring\SubscriptionBundle\Manager\SubscriptionItemManagerInterface;
+use Softspring\PlatformBundle\Stripe\Client\StripeClientProvider;
+use Softspring\PlatformBundle\Stripe\Transformer\SubscriptionTransformer;
+use Softspring\SubscriptionBundle\Model\PlanInterface;
 use Softspring\SubscriptionBundle\Model\SubscriptionInterface;
-use Softspring\SubscriptionBundle\Model\SubscriptionItemInterface;
-use Softspring\SubscriptionBundle\Model\SubscriptionMultiPlanInterface;
-use Softspring\SubscriptionBundle\Model\SubscriptionSinglePlanInterface;
-use Stripe\Exception\InvalidRequestException;
-use Stripe\Invoice;
-use Stripe\Subscription as StripeSubscription; use Stripe\SubscriptionItem as StripeSubscriptionItem;
+use Stripe\Subscription;
 
 class SubscriptionAdapter implements SubscriptionAdapterInterface
 {
-    const MAPPING_STATUSES = [
-        'active' => SubscriptionInterface::STATUS_ACTIVE,
-        'incomplete' => SubscriptionInterface::STATUS_ACTIVE,
-        'trialing' => SubscriptionInterface::STATUS_TRIALING,
-        'unpaid' => SubscriptionInterface::STATUS_UNPAID,
-        'past_due' => SubscriptionInterface::STATUS_UNPAID,
-        'incomplete_expired' => SubscriptionInterface::STATUS_EXPIRED,
-        'canceled' => SubscriptionInterface::STATUS_EXPIRED,
-    ];
+    /**
+     * @var StripeClientProvider
+     */
+    protected $stripeClientProvider;
 
     /**
-     * @var SubscriptionItemManagerInterface
+     * @var SubscriptionTransformer
      */
-    protected $itemManager;
+    protected $subscriptionTransformer;
 
     /**
-     * @var PlanManagerInterface
+     * @var LoggerInterface|null
      */
-    protected $planManager;
+    protected $logger;
 
     /**
-     * @param SubscriptionItemManagerInterface $itemManager
+     * SubscriptionAdapter constructor.
+     *
+     * @param StripeClientProvider    $stripeClientProvider
+     * @param SubscriptionTransformer $subscriptionTransformer
+     * @param LoggerInterface|null    $logger
      */
-    public function setItemManager(SubscriptionItemManagerInterface $itemManager): void
+    public function __construct(StripeClientProvider $stripeClientProvider, SubscriptionTransformer $subscriptionTransformer, ?LoggerInterface $logger)
     {
-        $this->itemManager = $itemManager;
+        $this->stripeClientProvider = $stripeClientProvider;
+        $this->subscriptionTransformer = $subscriptionTransformer;
+        $this->logger = $logger;
     }
 
     /**
-     * @param PlanManagerInterface $planManager
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     *
+     * @return Subscription
+     * @throws PlatformException
      */
-    public function setPlanManager(PlanManagerInterface $planManager): void
-    {
-        $this->planManager = $planManager;
-    }
-
-    protected static function prepareDataForPlatform(SubscriptionInterface $subscription, string $action = ''): array
-    {
-        $data = [
-            'subscription' => [
-                'items' => [],
-            ],
-        ];
-
-        if ($action == 'create') {
-            $data['subscription']['customer'] = $subscription->getCustomer()->getPlatformId();
-        }
-
-        if ($subscription instanceof SubscriptionMultiPlanInterface) {
-            foreach ($subscription->getItems() as $item) {
-                if ($action == 'create' || ($action == 'update' && !$item->getPlatformId())) {
-                    $data['subscription']['items'][] = [
-                        'plan' => $item->getPlan()->getPlatformId(),
-                        'quantity' => $item->getQuantity(),
-                    ];
-                } elseif ($action == 'update' && $item->getPlatformId()) {
-                    $data['subscription']['items'][] = [
-                        'id' => $item->getPlatformId(),
-                        'plan' => $item->getPlan()->getPlatformId(),
-                        'quantity' => $item->getQuantity(),
-                    ];
-                }
-            }
-        } elseif ($subscription instanceof SubscriptionSinglePlanInterface) {
-            if ($action == 'create') {
-                $data['subscription']['items'][] = [
-                    'plan' => $subscription->getPlan()->getPlatformId(),
-                ];
-            }
-        }
-
-        return $data;
-    }
-
-    protected function getSubscriptionItem(SubscriptionInterface $subscription, StripeSubscriptionItem $itemStripe): SubscriptionItemInterface
-    {
-        if (!$subscription instanceof SubscriptionMultiPlanInterface) {
-            throw new PlatformException(PlatformInterface::PLATFORM_STRIPE, 'invalid_subscription_mapping_configuration');
-        }
-
-        foreach ($subscription->getItems() as $item) {
-            if ($item->getPlatformId() == $itemStripe->id) {
-                return $item;
-            }
-        }
-
-        foreach ($subscription->getItems() as $item) {
-            if ($item->getPlatformId()) {
-                continue;
-            }
-
-            if ($item->getPlan()->getPlatformId() != $itemStripe->plan->id) {
-                continue;
-            }
-
-            if ($item->getQuantity() != $itemStripe->quantity) {
-                continue;
-            }
-
-            return $item;
-        }
-
-        $subscription->addItem($newItem = $this->itemManager->createEntity());
-        $newItem->setQuantity($itemStripe->quantity);
-        $newItem->setPlan($this->planManager->getRepository()->findOneByPlatformId($itemStripe->plan));
-
-        return $newItem;
-    }
-
-    public function syncSubscription(SubscriptionInterface $subscription, StripeSubscription $subscriptionStripe)
-    {
-        // save platform data
-        $subscription->setPlatform(PlatformInterface::PLATFORM_STRIPE);
-        $subscription->setPlatformId($subscriptionStripe->id);
-        $subscription->setTestMode(!$subscriptionStripe->livemode);
-        $subscription->setPlatformLastSync(\DateTime::createFromFormat('U', $subscriptionStripe->created));
-        $subscription->setPlatformConflict(false);
-        $subscription->setPlatformData($subscriptionStripe->toArray());
-
-        if ($subscription instanceof SubscriptionMultiPlanInterface) {
-            foreach ($subscriptionStripe->items as $itemStripe) {
-                $subscriptionItem = $this->getSubscriptionItem($subscription, $itemStripe);
-                $subscriptionItem->setPlatform(PlatformInterface::PLATFORM_STRIPE);
-                $subscriptionItem->setPlatformId($itemStripe->id);
-                $subscriptionItem->setTestMode(!$itemStripe->livemode);
-                $subscriptionItem->setPlatformLastSync(\DateTime::createFromFormat('U', $itemStripe->created));
-                $subscriptionItem->setPlatformConflict(false);
-                $subscriptionItem->setPlatformData($itemStripe->toArray());
-            }
-        }
-
-        $subscription->setStartDate(\DateTime::createFromFormat('U', $subscriptionStripe->current_period_start));
-        $subscription->setEndDate(\DateTime::createFromFormat('U', $subscriptionStripe->current_period_end));
-        $subscription->setStatus(self::MAPPING_STATUSES[$subscriptionStripe->status]);
-
-        if (!empty($subscriptionStripe->cancel_at)) {
-            if (in_array($subscription->getStatus(), [SubscriptionInterface::STATUS_ACTIVE, SubscriptionInterface::STATUS_TRIALING])) {
-                $subscription->setStatus(SubscriptionInterface::STATUS_CANCELED);
-            }
-
-            $subscription->setCancelScheduled(\DateTime::createFromFormat('U', $subscriptionStripe->cancel_at));
-        } else {
-            $subscription->setCancelScheduled(null);
-        }
-    }
-
     public function create(SubscriptionInterface $subscription)
     {
-        try {
-            $this->initStripe();
+        $data = $this->subscriptionTransformer->transform($subscription, 'create');
 
-            // prepare data for stripe
-            $data = self::prepareDataForPlatform($subscription, 'create');
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->subscriptionCreate($data['subscription']);
 
-            /** @var StripeSubscription $subscriptionStripe */
-            $subscriptionStripe = $this->stripeClientCreate($data['subscription']);
+        $this->logger && $this->logger->info(sprintf('Stripe created subscription %s', $subscriptionStripe->id));
 
-            $this->logger && $this->logger->info(sprintf('Stripe created subscription %s', $subscriptionStripe->id));
+        $this->subscriptionTransformer->reverseTransform($subscriptionStripe, $subscription);
 
-            $this->syncSubscription($subscription, $subscriptionStripe);
-
-            return $subscriptionStripe;
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
+        return $subscriptionStripe;
     }
 
     /**
-     * @inheritDoc
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     *
+     * @return Subscription
+     * @throws PlatformException
      */
     public function get(SubscriptionInterface $subscription)
     {
-        try {
-            $this->initStripe();
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->subscriptionRetrieve([
+            'id' => $subscription->getPlatformId(),
+        ]);
 
-            $response = $this->stripeClientRetrieve([
-                'id' => $subscription->getPlatformId(),
-            ]);
+        $this->subscriptionTransformer->reverseTransform($subscriptionStripe, $subscription);
 
-            $this->syncSubscription($subscription, $response);
+        return $subscriptionStripe;
+    }
 
-            return $response;
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
+    /**
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     * @param PlanInterface|PlatformObjectInterface         $fromPlan
+     * @param PlanInterface|PlatformObjectInterface         $toPlan
+     *
+     * @return Subscription
+     */
+    public function upgradePlan(SubscriptionInterface $subscription, PlanInterface $fromPlan, PlanInterface $toPlan)
+    {
+        $stripeSubscription = $this->get($subscription);
+
+        $data = $this->subscriptionTransformer->transform($subscription, 'upgrade', [
+            'stripeSubscription' => $stripeSubscription,
+            'fromPlan' => $fromPlan,
+            'toPlan' => $toPlan,
+        ]);
+
+        $stripeSubscription->updateAttributes($data['subscription']);
+        $stripeSubscription = $this->stripeClientProvider->getClient($subscription)->save($stripeSubscription);
+
+        $this->logger && $this->logger->info(sprintf('Stripe %s subscription upgraded plan to %s', $subscription->getPlatformId(), $toPlan->getPlatformId()));
+
+        return $stripeSubscription;
+    }
+
+    /**
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     *
+     * @return Subscription
+     * @throws PlatformException
+     */
+    public function cancelRenovation(SubscriptionInterface $subscription)
+    {
+        $subscriptionStripe = $this->get($subscription);
+        $subscriptionStripe->updateAttributes(['cancel_at_period_end' => true]);
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->save($subscriptionStripe);
+        $this->subscriptionTransformer->reverseTransform($subscriptionStripe, $subscription);
+
+        $this->logger && $this->logger->info(sprintf('Stripe cancel renewal for %s', $subscription->getPlatformId()));
+
+        return $subscriptionStripe;
+    }
+
+    /**
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     *
+     * @return Subscription
+     * @throws PlatformException
+     */
+    public function uncancelRenovation(SubscriptionInterface $subscription)
+    {
+        $subscriptionStripe = $this->get($subscription);
+        $subscriptionStripe->updateAttributes(['cancel_at_period_end' => false]);
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->save($subscriptionStripe);
+        $this->subscriptionTransformer->reverseTransform($subscriptionStripe, $subscription);
+
+        $this->logger && $this->logger->info(sprintf('Stripe un-cancel renewal for %s', $subscription->getPlatformId()));
+
+        return $subscriptionStripe;
+    }
+
+    /**
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     *
+     * @return mixed|Subscription
+     * @throws PlatformException
+     */
+    public function cancel(SubscriptionInterface $subscription)
+    {
+        $subscriptionStripe = $this->get($subscription);
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->subscriptionCancel($subscriptionStripe);
+        $this->subscriptionTransformer->reverseTransform($subscriptionStripe, $subscription);
+
+        $this->logger && $this->logger->info(sprintf('Stripe cancel subscription %s', $subscription->getPlatformId()));
+
+        return $subscriptionStripe;
     }
 
     /**
      * @inheritDoc
      */
-    public function update(SubscriptionInterface $subscription)
+    public function trial(SubscriptionInterface $subscription)
     {
-        try {
-            $this->initStripe();
-
-            // prepare data for stripe
-            $data = self::prepareDataForPlatform($subscription, 'update');
-
-            /** @var  $subscriptionStripe */
-            $subscriptionStripe = $this->get($subscription);
-            $subscriptionStripe->updateAttributes($data['subscription']);
-            $subscriptionStripe->save();
-
-            $this->logger && $this->logger->info(sprintf('Stripe updated customer %s', $subscriptionStripe->id));
-
-            $this->syncSubscription($subscription, $subscriptionStripe);
-
-            return $subscriptionStripe;
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     * @deprecated
-     */
-    public function subscribe($customer, $plan, array $options = [])
-    {
-        $customerId = $customer instanceof PlatformObjectInterface ? $customer->getPlatformId() : $customer;
-        $planId = $plan instanceof PlatformObjectInterface ? $plan->getPlatformId() : $plan;
-
-        try {
-            $this->initStripe();
-
-            $subscriptionConfig = [
-                'customer' => $customerId,
-                'items' => [['plan' => $planId]],
-            ];
-
-            if (!empty($options['trial_period_days'])) {
-                $subscriptionConfig['trial_period_days'] = $options['trial_period_days'];
-            }
-
-            /** @var StripeSubscription $subscriptionData */
-            $subscriptionData = StripeSubscription::create($subscriptionConfig);
-
-            $this->logger && $this->logger->info(sprintf('Stripe created subscription %s%s', $subscriptionData->id, !empty($options['trial_period_days']) ? ' with trial' : ''));
-
-            return new SubscriptionResponse(PlatformInterface::PLATFORM_STRIPE, $subscriptionData);
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     * @deprecated
-     */
-    public function trial($customer, $plan, int $days, array $options = [])
-    {
-        $customerId = $customer instanceof PlatformObjectInterface ? $customer->getPlatformId() : $customer;
-        $planId = $plan instanceof PlatformObjectInterface ? $plan->getPlatformId() : $plan;
-
-        $options['trial_period_days'] = $days;
-        return $this->subscribe($customerId, $planId, $options);
-    }
-
-    /**
-     * @inheritDoc
-     * @deprecated Use get method
-     */
-    public function details($subscription)
-    {
-        return $this->get($subscription);
+        // TODO
     }
 
     /**
      * @inheritDoc
      */
-    public function cancelRenovation($subscription)
+    public function finishTrial(SubscriptionInterface $subscription)
     {
-        $subscriptionId = $subscription instanceof PlatformObjectInterface ? $subscription->getPlatformId() : $subscription;
-
-        try {
-            $this->initStripe();
-
-            /** @var StripeSubscription $subscriptionData */
-            $subscriptionData = $this->stripeClientRetrieve([
-                'id' => $subscriptionId,
-            ]);
-            $subscriptionData->updateAttributes([
-                'cancel_at_period_end' => true,
-            ]);
-            $subscriptionData->save();
-
-            $this->logger && $this->logger->info(sprintf('Stripe cancel renewal for %s', $subscriptionId));
-
-            return new SubscriptionResponse(PlatformInterface::PLATFORM_STRIPE, $subscriptionData);
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function uncancelRenovation($subscription)
-    {
-        $subscriptionId = $subscription instanceof PlatformObjectInterface ? $subscription->getPlatformId() : $subscription;
-
-        try {
-            $this->initStripe();
-
-            /** @var StripeSubscription $subscriptionData */
-            $subscriptionData = $this->stripeClientRetrieve([
-                'id' => $subscriptionId,
-            ]);
-            $subscriptionData->updateAttributes([
-                'cancel_at_period_end' => false,
-            ]);
-            $subscriptionData->save();
-
-            $this->logger && $this->logger->info(sprintf('Stripe un cancel renewal for %s', $subscriptionId));
-
-            return new SubscriptionResponse(PlatformInterface::PLATFORM_STRIPE, $subscriptionData);
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function cancel($subscription)
-    {
-        $subscriptionId = $subscription instanceof PlatformObjectInterface ? $subscription->getPlatformId() : $subscription;
-
-        try {
-            $this->initStripe();
-
-            /** @var StripeSubscription $subscriptionData */
-            $subscriptionData = $this->stripeClientRetrieve([
-                'id' => $subscriptionId,
-            ]);
-            $subscriptionData->cancel();
-
-            $this->logger && $this->logger->info(sprintf('Stripe deleted %s subscription', $subscriptionId));
-
-            return new SubscriptionResponse(PlatformInterface::PLATFORM_STRIPE, $subscriptionData);
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function upgrade($subscription, $plan, array $options = [])
-    {
-        $subscriptionId = $subscription instanceof PlatformObjectInterface ? $subscription->getPlatformId() : $subscription;
-        $planId = $plan instanceof PlatformObjectInterface ? $plan->getPlatformId() : $plan;
-
-        try {
-            $this->initStripe();
-
-            /** @var StripeSubscription $subscriptionData */
-            $subscriptionData = $this->stripeClientRetrieve([
-                'id' => $subscriptionId,
-            ]);
-            $subscriptionData->updateAttributes([
-                'plan' => $planId,
-                'prorate' => true,
-            ]);
-            $subscriptionData->save();
-
-            try {
-                /** @var Invoice $invoice */
-                $invoice = Invoice::create(["customer" => $subscriptionData->customer]);
-                $invoice->finalizeInvoice();
-            } catch (InvalidRequestException $e) {
-                if ($e->getMessage() == 'Nothing to invoice for customer') {
-
-                } else {
-                    throw $e;
-                }
-            }
-
-            $this->logger && $this->logger->info(sprintf('Stripe upgraded plan for %s', $subscriptionId));
-
-            return new SubscriptionResponse(PlatformInterface::PLATFORM_STRIPE, $subscriptionData);
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function finishTrial($subscriptionId, $planId)
-    {
-        $subscriptionId = $subscriptionId instanceof PlatformObjectInterface ? $subscriptionId->getPlatformId() : $subscriptionId;
-        $planId = $planId instanceof PlatformObjectInterface ? $planId->getPlatformId() : $planId;
-
-        try {
-            $this->initStripe();
-
-            /** @var StripeSubscription $subscriptionData */
-            $subscriptionData = $this->stripeClientRetrieve([
-                'id' => $subscriptionId,
-            ]);
-            $subscriptionData->updateAttributes([
-                'plan' => $planId,
-                'trial_end' => 'now',
-            ]);
-            $subscriptionData->save();
-
-            $this->logger && $this->logger->info(sprintf('Stripe finish trial for %s', $subscriptionId));
-
-            return new SubscriptionResponse(PlatformInterface::PLATFORM_STRIPE, $subscriptionData);
-        } catch (\Exception $e) {
-            $this->attachStripeExceptions($e);
-        }
-    }
-
-    protected function stripeClientCreate($params = null, $options = null): StripeSubscription
-    {
-        return StripeSubscription::create($params, $options);
-    }
-
-    protected function stripeClientRetrieve($id, $opts = null): StripeSubscription
-    {
-        return StripeSubscription::retrieve($id, $opts);
+        // TODO
     }
 }

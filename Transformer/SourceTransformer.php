@@ -58,11 +58,9 @@ class SourceTransformer extends AbstractPlatformTransformer implements PlatformT
             $source->setPlatform('stripe');
         }
 
-        $source->setPlatformId($stripeSource->id);
-        $source->setTestMode(!$stripeSource->livemode);
-        $source->setPlatformLastSync(\DateTime::createFromFormat('U', $stripeSource->created)); // TODO update last sync date
-        $source->setPlatformConflict(false);
-        $source->setPlatformData($stripeSource->toArray());
+        $this->reverseTransformPlatformObject($source, $stripeSource);
+        $source->setPlatformLastSync(new \DateTime('now'));
+        $source->setTestMode($source->getCustomer()->isTestMode());
 
         return $source;
     }

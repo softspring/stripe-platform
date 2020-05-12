@@ -7,7 +7,6 @@ use Softspring\PlatformBundle\Exception\PlatformException;
 use Softspring\PlatformBundle\Exception\TransformException;
 use Softspring\PlatformBundle\Model\PlatformByObjectInterface;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
-use Softspring\PlatformBundle\PlatformInterface;
 use Softspring\PlatformBundle\Transformer\PlatformTransformerInterface;
 use Stripe\Charge;
 use Stripe\Refund;
@@ -58,7 +57,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
                 break;
 
             default:
-                throw new PlatformException(PlatformInterface::PLATFORM_STRIPE, 'Bad payment type');
+                throw new PlatformException('stripe', 'Bad payment type');
         }
 
         return $data;
