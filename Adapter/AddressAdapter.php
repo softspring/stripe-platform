@@ -12,7 +12,8 @@ class AddressAdapter implements AddressAdapterInterface
      */
     public function create(AddressInterface $address)
     {
-
+        // nothing to do in stripe
+        return null;
     }
 
     /**
@@ -20,6 +21,7 @@ class AddressAdapter implements AddressAdapterInterface
      */
     public function get(AddressInterface $address): array
     {
-
+        // nothing to do in stripe
+        return [];
     }
 }

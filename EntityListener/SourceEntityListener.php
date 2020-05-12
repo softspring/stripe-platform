@@ -5,21 +5,18 @@ namespace Softspring\PlatformBundle\Stripe\EntityListener;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Softspring\CustomerBundle\Model\SourceInterface;
-use Softspring\PlatformBundle\Adapter\CustomerAdapterInterface;
-use Softspring\PlatformBundle\Adapter\SourceAdapterInterface;
-use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
 use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
 use Softspring\PlatformBundle\Stripe\Adapter\SourceAdapter;
 
 class SourceEntityListener
 {
     /**
-     * @var CustomerAdapterInterface
+     * @var CustomerAdapter
      */
     protected $customerAdapter;
 
     /**
-     * @var SourceAdapterInterface
+     * @var SourceAdapter
      */
     protected $sourceAdapter;
 

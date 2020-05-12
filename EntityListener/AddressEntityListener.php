@@ -6,29 +6,28 @@ use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Softspring\CustomerBundle\Model\AddressInterface;
 use Softspring\CustomerBundle\Model\CustomerBillingAddressInterface;
-use Softspring\PlatformBundle\Adapter\CustomerAdapterInterface;
-use Softspring\PlatformBundle\Adapter\AddressAdapterInterface;
-use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
+use Softspring\PlatformBundle\Stripe\Adapter\AddressAdapter;
+use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
 
 class AddressEntityListener
 {
     /**
-     * @var CustomerAdapterInterface
+     * @var CustomerAdapter
      */
     protected $customerAdapter;
 
     /**
-     * @var AddressAdapterInterface
+     * @var AddressAdapter
      */
     protected $addressAdapter;
 
     /**
      * StripeAddressEntityListener constructor.
      *
-     * @param CustomerAdapterInterface $customerAdapter
-     * @param AddressAdapterInterface  $addressAdapter
+     * @param CustomerAdapter $customerAdapter
+     * @param AddressAdapter  $addressAdapter
      */
-    public function __construct(CustomerAdapterInterface $customerAdapter, AddressAdapterInterface $addressAdapter)
+    public function __construct(CustomerAdapter $customerAdapter, AddressAdapter $addressAdapter)
     {
         $this->customerAdapter = $customerAdapter;
         $this->addressAdapter = $addressAdapter;
@@ -51,7 +50,7 @@ class AddressEntityListener
     {
         $customer = $address->getCustomer();
 
-        if (!  $customer instanceof CustomerBillingAddressInterface) {
+        if (! $customer instanceof CustomerBillingAddressInterface) {
             return;
         }
 

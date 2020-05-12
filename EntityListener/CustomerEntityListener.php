@@ -6,24 +6,24 @@ use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Softspring\CustomerBundle\Model\CustomerInterface;
 use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
-use Softspring\PlatformBundle\Manager\AdapterManagerInterface;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
+use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
 
 class CustomerEntityListener
 {
     /**
-     * @var AdapterManagerInterface
+     * @var CustomerAdapter
      */
-    protected $adapterManager;
+    protected $customerAdapter;
 
     /**
      * CustomerEntityListener constructor.
      *
-     * @param AdapterManagerInterface $adapterManager
+     * @param CustomerAdapter $customerAdapter
      */
-    public function __construct(AdapterManagerInterface $adapterManager)
+    public function __construct(CustomerAdapter $customerAdapter)
     {
-        $this->adapterManager = $adapterManager;
+        $this->customerAdapter = $customerAdapter;
     }
 
     /**
@@ -32,11 +32,7 @@ class CustomerEntityListener
      */
     public function prePersist(CustomerInterface $customer, LifecycleEventArgs $eventArgs)
     {
-        if (! ($adapter = $this->adapterManager->get('stripe', 'customer'))) {
-            return;
-        }
-
-        $adapter->create($customer);
+        $this->customerAdapter->create($customer);
     }
 
     /**
@@ -45,14 +41,10 @@ class CustomerEntityListener
      */
     public function preUpdate(CustomerInterface $customer, PreUpdateEventArgs $eventArgs)
     {
-        if (! ($adapter = $this->adapterManager->get('stripe', 'customer'))) {
-            return;
-        }
-
         if (!$customer->getPlatformId()) {
-            $adapter->create($customer);
+            $this->customerAdapter->create($customer);
         } else {
-            $adapter->update($customer);
+            $this->customerAdapter->update($customer);
         }
     }
 
@@ -62,13 +54,9 @@ class CustomerEntityListener
      */
     public function preRemove(CustomerInterface $customer, LifecycleEventArgs $eventArgs)
     {
-        if (! ($adapter = $this->adapterManager->get('stripe', 'customer'))) {
-            return;
-        }
-
         if ($customer->getPlatformId()) {
             try {
-                $adapter->delete($customer);
+                $this->customerAdapter->delete($customer);
             } catch (NotFoundInPlatform $e) {
                 // nothing to do, it's already deleted
             }
