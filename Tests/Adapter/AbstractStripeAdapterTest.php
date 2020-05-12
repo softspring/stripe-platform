@@ -18,6 +18,9 @@ abstract class AbstractStripeAdapterTest extends TestCase
         $object->method('__get')->willReturnCallback(function ($prop) use ($properties) {
             return $properties[$prop];
         });
+        $object->method('__isset')->willReturnCallback(function ($prop) use ($properties) {
+            return isset($properties[$prop]);
+        });
 
         foreach ($callbacks as $function => $callback) {
             $object->method($function)->willReturnCallback($callback);
@@ -51,6 +54,10 @@ abstract class AbstractStripeAdapterTest extends TestCase
         $collection = $this->createStripeObject(Collection::class, ['has_more' => $hasMore]);
 
         $collection->method('getIterator')->willReturn(new \ArrayIterator($objects));
+        $collection->method('__get')->with('data')->willReturn($objects);
+        $collection->method('offsetGet')->willReturnCallback(function ($k) use ($objects) {
+            return $objects[$k];
+        });
 
         return $collection;
     }

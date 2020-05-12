@@ -56,6 +56,7 @@ class SourceAdapterTest extends AbstractStripeAdapterTest
         $source->setPlatformId('src_test');
         $customer = new CustomerBaseExample();
         $customer->setPlatformId('cus_test');
+        $customer->setTestMode(true);
         $source->setCustomer($customer);
 
         $this->stripeClient->method('sourceRetrieve')->will($this->returnValue($this->createStripeObject(Source::class, [
