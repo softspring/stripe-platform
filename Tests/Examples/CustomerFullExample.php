@@ -6,8 +6,9 @@ use Softspring\CustomerBundle\Model\Customer;
 use Softspring\CustomerBundle\Model\CustomerBillingAddressInterface;
 use Softspring\CustomerBundle\Model\CustomerBillingAddressTrait;
 use Softspring\CustomerBundle\Model\PlatformObjectTrait;
+use Softspring\PlatformBundle\Model\PlatformObjectInterface;
 
-class CustomerFullExample extends Customer implements CustomerBillingAddressInterface
+class CustomerFullExample extends Customer implements CustomerBillingAddressInterface, PlatformObjectInterface
 {
     use PlatformObjectTrait;
     use CustomerBillingAddressTrait;
