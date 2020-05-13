@@ -3,6 +3,7 @@
 namespace Softspring\PlatformBundle\Stripe\Transformer;
 
 use Softspring\PlatformBundle\Exception\TransformException;
+use Softspring\PlatformBundle\Model\PlatformByObjectInterface;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
 use Softspring\PlatformBundle\Transformer\PlatformTransformerInterface;
 use Stripe\StripeObject;
@@ -27,6 +28,10 @@ abstract class AbstractPlatformTransformer implements PlatformTransformerInterfa
 
     protected function reverseTransformPlatformObject(PlatformObjectInterface $platformObject, StripeObject $stripeObject)
     {
+        if ($platformObject instanceof PlatformByObjectInterface) {
+            $platformObject->setPlatform('stripe');
+        }
+
         $platformObject->setPlatformId($stripeObject->id);
 
         if (isset($stripeObject->livemode)) {

@@ -15,6 +15,7 @@ use Stripe\Customer;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
+use Stripe\InvoiceItem;
 use Stripe\Refund;
 use Stripe\Source;
 use Stripe\Stripe;
@@ -157,6 +158,26 @@ class StripeClient
         try {
             Stripe::setApiKey($this->apiSecretKey);
             return Refund::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function invoiceItemCreate($params = null, $options = null): InvoiceItem
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return InvoiceItem::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function invoiceItemRetrieve($id, $opts = null): InvoiceItem
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return InvoiceItem::retrieve($id, $opts);
         } catch (\Exception $e) {
             throw $this->transformException($e);
         }
