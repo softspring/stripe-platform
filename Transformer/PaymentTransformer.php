@@ -60,7 +60,10 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
                 break;
 
             case PaymentInterface::TYPE_REFUND:
-                $data['refund'] = [];
+                $data['refund'] = [
+                    'charge' => $payment->getRefundPayment()->getPlatformId(),
+                    'amount' => (int) ($payment->getAmount() * 100),
+                ];
                 break;
 
             default:
@@ -99,7 +102,8 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
         }
 
         if ($stripePayment instanceof Refund) {
-
+            $payment->setStatus(self::MAPPING_STATUSES[$stripePayment->status]);
+            $payment->setDate(\DateTime::createFromFormat('U', $stripePayment->created));
         }
 
         return $payment;
