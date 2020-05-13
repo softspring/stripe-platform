@@ -6,28 +6,29 @@ use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Softspring\PlatformBundle\Exception\NotFoundInPlatform;
 use Softspring\PaymentBundle\Model\PaymentInterface;
-use Softspring\PaymentBundle\Platform\Adapter\PaymentAdapterInterface;
+use Softspring\PlatformBundle\Model\PlatformObjectInterface;
+use Softspring\PlatformBundle\Stripe\Adapter\PaymentAdapter;
 
 class PaymentEntityListener
 {
     /**
-     * @var PaymentAdapterInterface
+     * @var PaymentAdapter
      */
     protected $paymentAdapter;
 
     /**
      * PaymentEntityListener constructor.
      *
-     * @param PaymentAdapterInterface $paymentAdapter
+     * @param PaymentAdapter $paymentAdapter
      */
-    public function __construct(PaymentAdapterInterface $paymentAdapter)
+    public function __construct(PaymentAdapter $paymentAdapter)
     {
         $this->paymentAdapter = $paymentAdapter;
     }
 
     /**
-     * @param PaymentInterface   $payment
-     * @param LifecycleEventArgs $eventArgs
+     * @param PaymentInterface|PlatformObjectInterface $payment
+     * @param LifecycleEventArgs                       $eventArgs
      */
     public function prePersist(PaymentInterface $payment, LifecycleEventArgs $eventArgs)
     {
@@ -35,8 +36,8 @@ class PaymentEntityListener
     }
 
     /**
-     * @param PaymentInterface   $payment
-     * @param PreUpdateEventArgs $eventArgs
+     * @param PaymentInterface|PlatformObjectInterface $payment
+     * @param PreUpdateEventArgs                       $eventArgs
      */
     public function preUpdate(PaymentInterface $payment, PreUpdateEventArgs $eventArgs)
     {
@@ -48,8 +49,8 @@ class PaymentEntityListener
     }
 
     /**
-     * @param PaymentInterface   $payment
-     * @param LifecycleEventArgs $eventArgs
+     * @param PaymentInterface|PlatformObjectInterface $payment
+     * @param LifecycleEventArgs                       $eventArgs
      */
     public function preRemove(PaymentInterface $payment, LifecycleEventArgs $eventArgs)
     {

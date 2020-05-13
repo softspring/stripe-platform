@@ -10,10 +10,12 @@ use Softspring\PlatformBundle\Exception\PlatformException;
 use Stripe\ApiOperations\Delete;
 use Stripe\ApiOperations\Update;
 use Stripe\Card;
+use Stripe\Charge;
 use Stripe\Customer;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
+use Stripe\Refund;
 use Stripe\Source;
 use Stripe\Stripe;
 use Stripe\Subscription;
@@ -115,6 +117,46 @@ class StripeClient
         try {
             Stripe::setApiKey($this->apiSecretKey);
             return Customer::deleteTaxId($id, $taxIdId, $params, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function chargeCreate($params = null, $options = null): Charge
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Charge::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function refundCreate($params = null, $options = null): Refund
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Refund::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function chargeRetrieve($id, $opts = null): Charge
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Charge::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function refundRetrieve($id, $opts = null): Refund
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Refund::retrieve($id, $opts);
         } catch (\Exception $e) {
             throw $this->transformException($e);
         }

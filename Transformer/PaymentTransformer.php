@@ -2,6 +2,8 @@
 
 namespace Softspring\PlatformBundle\Stripe\Transformer;
 
+use Softspring\CustomerBundle\Model\CustomerInterface;
+use Softspring\CustomerBundle\Model\SourceInterface;
 use Softspring\PaymentBundle\Model\PaymentInterface;
 use Softspring\PlatformBundle\Exception\PlatformException;
 use Softspring\PlatformBundle\Exception\TransformException;
@@ -37,11 +39,16 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
 
         $data = [];
 
+        /** @var CustomerInterface|PlatformObjectInterface $customer */
+        $customer = $payment->getCustomer();
+        /** @var SourceInterface|PlatformObjectInterface $source */
+        $source = $payment->getSource();
+
         switch ($payment->getType()) {
             case PaymentInterface::TYPE_CHARGE:
                 $data['charge'] = [
-                    'customer' => $payment->getCustomer()->getPlatformId(),
-                    'source' => $payment->getSource()->getPlatformId(),
+                    'customer' => $customer->getPlatformId(),
+                    'source' => $source->getPlatformId(),
                     'amount' => (int) ($payment->getAmount() * 100),
                     'currency' => $payment->getCurrency(),
                 ];
@@ -94,5 +101,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
         if ($stripePayment instanceof Refund) {
 
         }
+
+        return $payment;
     }
 }

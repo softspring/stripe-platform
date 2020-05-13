@@ -19,6 +19,10 @@ abstract class AbstractPlatformTransformer implements PlatformTransformerInterfa
         if (!$this->supports($dbObject)) {
             throw new TransformException('stripe', sprintf('%s object is not supported by %s', get_class($dbObject), self::class));
         }
+
+        if (!$dbObject instanceof PlatformObjectInterface) {
+            throw new TransformException('stripe', sprintf('%s object must be a %s', get_class($dbObject), PlatformObjectInterface::class));
+        }
     }
 
     protected function reverseTransformPlatformObject(PlatformObjectInterface $platformObject, StripeObject $stripeObject)
