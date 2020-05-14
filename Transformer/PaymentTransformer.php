@@ -84,16 +84,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
     public function reverseTransform($stripePayment, $payment = null, string $action = ''): PaymentInterface
     {
         $this->checkSupports($payment);
-
-        if ($payment instanceof PlatformByObjectInterface) {
-            $payment->setPlatform('stripe');
-        }
-
-        $payment->setPlatformId($stripePayment->id);
-        $payment->setTestMode(!$stripePayment->livemode);
-        $payment->setPlatformLastSync(\DateTime::createFromFormat('U', $stripePayment->created)); // TODO update last sync date
-        $payment->setPlatformConflict(false);
-        $payment->setPlatformData($stripePayment->toArray());
+        $this->reverseTransformPlatformObject($payment, $stripePayment);
 
         if ($stripePayment instanceof Charge) {
             $payment->setStatus(self::MAPPING_STATUSES[$stripePayment->status]);

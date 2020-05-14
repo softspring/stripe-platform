@@ -32,7 +32,7 @@ class ConceptEntityListener
      */
     public function prePersist(ConceptInterface $concept, LifecycleEventArgs $eventArgs)
     {
-        $this->conceptAdapter->create($concept);
+        // $this->conceptAdapter->create($concept);
     }
 
     /**
@@ -42,7 +42,7 @@ class ConceptEntityListener
     public function preUpdate(ConceptInterface $concept, PreUpdateEventArgs $eventArgs)
     {
         if (!$concept->getPlatformId()) {
-            $this->conceptAdapter->create($concept);
+            // $this->conceptAdapter->create($concept);
         } else {
             // $this->conceptAdapter->update($concept);
         }

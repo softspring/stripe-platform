@@ -26,19 +26,25 @@ class ConceptTransformer extends AbstractPlatformTransformer implements Platform
     {
         $this->checkSupports($concept);
 
-        $data = [
-            'concept' => [
+        $data = [];
+
+        if ($action == 'create') {
+            $data['concept'] = [
                 'customer' => $concept->getCustomer()->getPlatformId(),
                 'currency' => $concept->getCurrency(),
                 'description' => $concept->getConcept(),
-            ],
-        ];
+            ];
 
-        if ($concept->getQuantity() && $concept->getPrice()) {
-            $data['concept']['quantity'] = $concept->getQuantity();
-            $data['concept']['unit_amount'] = (int) ($concept->getPrice()*100);
-        } else {
-            $data['concept']['amount'] = (int) ($concept->getTotal()*100);
+            if ($concept->getQuantity() && $concept->getPrice()) {
+                $data['concept']['quantity'] = $concept->getQuantity();
+                $data['concept']['unit_amount'] = (int) ($concept->getPrice()*100);
+            } else {
+                $data['concept']['amount'] = (int) ($concept->getTotal()*100);
+            }
+
+            if ($concept->getInvoice() && $concept->getInvoice()->getPlatformId()) {
+                $data['concept']['invoice'] = $concept->getInvoice()->getPlatformId();
+            }
         }
 
         return $data;
