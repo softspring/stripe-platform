@@ -11,6 +11,7 @@ use Stripe\ApiOperations\Delete;
 use Stripe\ApiOperations\Update;
 use Stripe\Card;
 use Stripe\Charge;
+use Stripe\Coupon;
 use Stripe\Customer;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\CardException;
@@ -199,6 +200,26 @@ class StripeClient
         try {
             Stripe::setApiKey($this->apiSecretKey);
             return InvoiceItem::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function couponCreate($params = null, $options = null): Coupon
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Coupon::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function couponRetrieve($id, $opts = null): Coupon
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Coupon::retrieve($id, $opts);
         } catch (\Exception $e) {
             throw $this->transformException($e);
         }
