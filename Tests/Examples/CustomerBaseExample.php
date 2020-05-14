@@ -5,8 +5,8 @@ namespace Softspring\PlatformBundle\Stripe\Tests\Examples;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Softspring\CustomerBundle\Model\Customer;
-use Softspring\CustomerBundle\Model\PlatformObjectTrait;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
+use Softspring\PlatformBundle\Model\PlatformObjectTrait;
 use Softspring\SubscriptionBundle\Model\SubscriptionCustomerInterface;
 use Softspring\SubscriptionBundle\Model\SubscriptionInterface;
 

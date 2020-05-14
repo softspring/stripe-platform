@@ -5,8 +5,8 @@ namespace Softspring\PlatformBundle\Stripe\Tests\Examples;
 use Softspring\CustomerBundle\Model\Customer;
 use Softspring\CustomerBundle\Model\CustomerBillingAddressInterface;
 use Softspring\CustomerBundle\Model\CustomerBillingAddressTrait;
-use Softspring\CustomerBundle\Model\PlatformObjectTrait;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
+use Softspring\PlatformBundle\Model\PlatformObjectTrait;
 
 class CustomerFullExample extends Customer implements CustomerBillingAddressInterface, PlatformObjectInterface
 {
