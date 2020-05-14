@@ -32,6 +32,10 @@ class ConceptEntityListener
      */
     public function prePersist(ConceptInterface $concept, LifecycleEventArgs $eventArgs)
     {
+        if ($concept->isPlatformWebhooked()) {
+            return;
+        }
+
         // $this->conceptAdapter->create($concept);
     }
 
@@ -41,6 +45,10 @@ class ConceptEntityListener
      */
     public function preUpdate(ConceptInterface $concept, PreUpdateEventArgs $eventArgs)
     {
+        if ($concept->isPlatformWebhooked()) {
+            return;
+        }
+
         if (!$concept->getPlatformId()) {
             // $this->conceptAdapter->create($concept);
         } else {
@@ -54,6 +62,10 @@ class ConceptEntityListener
      */
     public function preRemove(ConceptInterface $concept, LifecycleEventArgs $eventArgs)
     {
+        if ($concept->isPlatformWebhooked()) {
+            return;
+        }
+
         if ($concept->getPlatformId()) {
             try {
                 // $this->conceptAdapter->delete($concept);

@@ -61,6 +61,6 @@ class WebhookEventFactory implements WebhookEventFactoryInterface
 
         $this->logger && $this->logger->info(sprintf('Stripe webhook received: %s, event: %s', $event->id, $event->type));
 
-        return new WebhookEvent('stripe', $event->type, $event);
+        return new StripeWebhookEvent($event->type, $event);
     }
 }

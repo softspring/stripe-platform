@@ -41,6 +41,10 @@ class PaymentEntityListener
      */
     public function preUpdate(PaymentInterface $payment, PreUpdateEventArgs $eventArgs)
     {
+        if ($payment->isPlatformWebhooked()) {
+            return;
+        }
+
         if (!$payment->getPlatformId()) {
             $this->paymentAdapter->create($payment);
         } else {
@@ -54,6 +58,10 @@ class PaymentEntityListener
      */
     public function preRemove(PaymentInterface $payment, LifecycleEventArgs $eventArgs)
     {
+        if ($payment->isPlatformWebhooked()) {
+            return;
+        }
+
         if ($payment->getPlatformId()) {
             try {
                 // $this->paymentAdapter->delete($payment);

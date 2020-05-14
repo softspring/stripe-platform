@@ -32,6 +32,10 @@ class CustomerEntityListener
      */
     public function prePersist(CustomerInterface $customer, LifecycleEventArgs $eventArgs)
     {
+        if ($customer->isPlatformWebhooked()) {
+            return;
+        }
+
         $this->customerAdapter->create($customer);
     }
 
@@ -41,6 +45,10 @@ class CustomerEntityListener
      */
     public function preUpdate(CustomerInterface $customer, PreUpdateEventArgs $eventArgs)
     {
+        if ($customer->isPlatformWebhooked()) {
+            return;
+        }
+
         if (!$customer->getPlatformId()) {
             $this->customerAdapter->create($customer);
         } else {
@@ -54,6 +62,10 @@ class CustomerEntityListener
      */
     public function preRemove(CustomerInterface $customer, LifecycleEventArgs $eventArgs)
     {
+        if ($customer->isPlatformWebhooked()) {
+            return;
+        }
+
         if ($customer->getPlatformId()) {
             try {
                 $this->customerAdapter->delete($customer);

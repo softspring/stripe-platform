@@ -32,6 +32,10 @@ class InvoiceEntityListener
      */
     public function prePersist(InvoiceInterface $invoice, LifecycleEventArgs $eventArgs)
     {
+        if ($invoice->isPlatformWebhooked()) {
+            return;
+        }
+
         $this->invoiceAdapter->create($invoice);
     }
 
@@ -41,6 +45,10 @@ class InvoiceEntityListener
      */
     public function preUpdate(InvoiceInterface $invoice, PreUpdateEventArgs $eventArgs)
     {
+        if ($invoice->isPlatformWebhooked()) {
+            return;
+        }
+
         if (!$invoice->getPlatformId()) {
             $this->invoiceAdapter->create($invoice);
         } else {
@@ -54,6 +62,10 @@ class InvoiceEntityListener
      */
     public function preRemove(InvoiceInterface $invoice, LifecycleEventArgs $eventArgs)
     {
+        if ($invoice->isPlatformWebhooked()) {
+            return;
+        }
+
         if ($invoice->getPlatformId()) {
             try {
                 // $this->invoiceAdapter->delete($invoice);

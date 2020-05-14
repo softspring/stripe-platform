@@ -5,6 +5,7 @@ namespace Softspring\PlatformBundle\Stripe\EntityListener;
 use Doctrine\ORM\Event\PreUpdateEventArgs;
 use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Softspring\CustomerBundle\Model\SourceInterface;
+use Softspring\PlatformBundle\Model\PlatformObjectInterface;
 use Softspring\PlatformBundle\Stripe\Adapter\CustomerAdapter;
 use Softspring\PlatformBundle\Stripe\Adapter\SourceAdapter;
 
@@ -33,20 +34,28 @@ class SourceEntityListener
     }
 
     /**
-     * @param SourceInterface    $source
-     * @param LifecycleEventArgs $eventArgs
+     * @param SourceInterface|PlatformObjectInterface $source
+     * @param LifecycleEventArgs                      $eventArgs
      */
     public function prePersist(SourceInterface $source, LifecycleEventArgs $eventArgs)
     {
+        if ($source->isPlatformWebhooked()) {
+            return;
+        }
+
         $this->sourceAdapter->create($source);
     }
 
     /**
-     * @param SourceInterface    $source
-     * @param PreUpdateEventArgs $eventArgs
+     * @param SourceInterface|PlatformObjectInterface $source
+     * @param PreUpdateEventArgs                      $eventArgs
      */
     public function preUpdate(SourceInterface $source, PreUpdateEventArgs $eventArgs)
     {
+        if ($source->isPlatformWebhooked()) {
+            return;
+        }
+
 //        if (!$source->getPlatformId()) {
 //            $this->sourceAdapter->create($source);
 //        } else {
@@ -55,11 +64,15 @@ class SourceEntityListener
     }
 
     /**
-     * @param SourceInterface    $source
-     * @param LifecycleEventArgs $eventArgs
+     * @param SourceInterface|PlatformObjectInterface $source
+     * @param LifecycleEventArgs                      $eventArgs
      */
     public function preRemove(SourceInterface $source, LifecycleEventArgs $eventArgs)
     {
+        if ($source->isPlatformWebhooked()) {
+            return;
+        }
+
 //        if ($source->getPlatformId()) {
 //            try {
 //                $this->sourceAdapter->delete($source);
