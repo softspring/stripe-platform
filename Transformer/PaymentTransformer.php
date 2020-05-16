@@ -2,6 +2,7 @@
 
 namespace Softspring\PlatformBundle\Stripe\Transformer;
 
+use Softspring\CustomerBundle\Manager\SourceManagerInterface;
 use Softspring\CustomerBundle\Model\CustomerInterface;
 use Softspring\CustomerBundle\Model\SourceInterface;
 use Softspring\PaymentBundle\Model\PaymentInterface;
@@ -10,6 +11,7 @@ use Softspring\PlatformBundle\Exception\TransformException;
 use Softspring\PlatformBundle\Model\PlatformByObjectInterface;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
 use Softspring\PlatformBundle\Transformer\PlatformTransformerInterface;
+use Softspring\ShopBundle\Manager\CustomerManagerInterface;
 use Stripe\Charge;
 use Stripe\Refund;
 
@@ -20,6 +22,28 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
         'succeeded' => PaymentInterface::STATUS_DONE,
         'failed' => PaymentInterface::STATUS_FAILED,
     ];
+
+    /**
+     * @var CustomerManagerInterface
+     */
+    protected $customerManager;
+
+    /**
+     * @var SourceManagerInterface
+     */
+    protected $sourceManager;
+
+    /**
+     * PaymentTransformer constructor.
+     *
+     * @param CustomerManagerInterface $customerManager
+     * @param SourceManagerInterface   $sourceManager
+     */
+    public function __construct(CustomerManagerInterface $customerManager, SourceManagerInterface $sourceManager)
+    {
+        $this->customerManager = $customerManager;
+        $this->sourceManager = $sourceManager;
+    }
 
     public function supports($payment): bool
     {
@@ -90,11 +114,25 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
             $payment->setStatus(self::MAPPING_STATUSES[$stripePayment->status]);
             $payment->setDate(\DateTime::createFromFormat('U', $stripePayment->created));
             $payment->setConcept($stripePayment->description);
+            $payment->setType(PaymentInterface::TYPE_CHARGE);
+            $payment->setCurrency($stripePayment->currency);
+            $payment->setAmount($stripePayment->amount / 100);
+
+            if ($customer = $this->customerManager->getRepository()->findOneByPlatformId($stripePayment->customer)) {
+                $payment->setCustomer($customer);
+            }
+
+            if ($source = $this->sourceManager->getRepository()->findOneByPlatformId($stripePayment->source->id)) {
+                $payment->setSource($source);
+            }
         }
 
         if ($stripePayment instanceof Refund) {
+            $payment->setType(PaymentInterface::TYPE_REFUND);
             $payment->setStatus(self::MAPPING_STATUSES[$stripePayment->status]);
             $payment->setDate(\DateTime::createFromFormat('U', $stripePayment->created));
+
+            // $payment->setRefundPayment();
         }
 
         return $payment;

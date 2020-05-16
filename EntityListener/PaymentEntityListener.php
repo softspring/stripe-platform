@@ -32,6 +32,10 @@ class PaymentEntityListener
      */
     public function prePersist(PaymentInterface $payment, LifecycleEventArgs $eventArgs)
     {
+        if ($payment->isPlatformWebhooked()) {
+            return;
+        }
+
         $this->paymentAdapter->create($payment);
     }
 

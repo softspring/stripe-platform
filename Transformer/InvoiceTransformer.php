@@ -39,12 +39,12 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
 
             if ($invoice->getDate()->format('Ymd') > date('Ymd')) {
                 // future invoice
-                $data['invoice']['collection_method'] = 'charge_automatically';
-            } else {
-                // invoice now
                 $data['invoice']['collection_method'] = 'send_invoice';
                 // $data['invoice']['days_until_due'] = $invoice->getDate()->diff(new \DateTime('today'))->format('%a');
                 $data['invoice']['due_date'] = max([$invoice->getDate()->format('U'), time()+10]);
+            } else {
+                // invoice now
+                $data['invoice']['collection_method'] = 'charge_automatically';
             }
 
             // description
