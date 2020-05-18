@@ -2,16 +2,15 @@
 
 namespace Softspring\PlatformBundle\Stripe\Transformer;
 
+use Softspring\CustomerBundle\Manager\CustomerManagerInterface;
 use Softspring\CustomerBundle\Manager\SourceManagerInterface;
 use Softspring\CustomerBundle\Model\CustomerInterface;
 use Softspring\CustomerBundle\Model\SourceInterface;
 use Softspring\PaymentBundle\Model\PaymentInterface;
 use Softspring\PlatformBundle\Exception\PlatformException;
 use Softspring\PlatformBundle\Exception\TransformException;
-use Softspring\PlatformBundle\Model\PlatformByObjectInterface;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
 use Softspring\PlatformBundle\Transformer\PlatformTransformerInterface;
-use Softspring\ShopBundle\Manager\CustomerManagerInterface;
 use Stripe\Charge;
 use Stripe\Refund;
 
