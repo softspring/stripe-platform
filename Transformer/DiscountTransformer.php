@@ -34,6 +34,10 @@ class DiscountTransformer extends AbstractPlatformTransformer implements Platfor
 
         $data = [];
 
+        if (!in_array($discount->getTarget(), [DiscountInterface::TARGET_INVOICE, DiscountInterface::TARGET_SUBSCRIPTION])) {
+            return $data;
+        }
+
         if ($action == 'create') {
             $data['discount'] = [
                 'name' => $discount->getName(),

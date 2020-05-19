@@ -52,6 +52,10 @@ class DiscountAdapter implements DiscountAdapterInterface
     {
         $data = $this->discountTransformer->transform($discount, 'create');
 
+        if (empty($data['discount'])) {
+            return null;
+        }
+
         $discountStripe = $this->stripeClientProvider->getClient($discount)->couponCreate($data['discount']);
 
         $this->logger && $this->logger->info(sprintf('Stripe created discount %s', $discountStripe->id));
