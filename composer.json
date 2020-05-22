@@ -37,6 +37,7 @@
         "softspring/doctrine-templates": "^1.1",
         "softspring/customer-bundle": "^1.2@dev",
         "softspring/subscription-bundle": "^1.4@dev",
-        "softspring/payment-bundle": "^1.1@dev"
+        "softspring/payment-bundle": "^1.1@dev",
+        "softspring/polymorphic-form-type": "^1.0@dev"
     }
 }
