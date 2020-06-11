@@ -73,7 +73,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
                     'customer' => $customer->getPlatformId(),
                     'source' => $source->getPlatformId(),
                     'amount' => (int) ($payment->getAmount() * 100),
-                    'currency' => $payment->getCurrency(),
+                    'currency' => strtolower($payment->getCurrency()),
                 ];
 
                 if ($payment->getConcept()) {
@@ -114,7 +114,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
             $payment->setDate(\DateTime::createFromFormat('U', $stripePayment->created));
             $payment->setConcept($stripePayment->description);
             $payment->setType(PaymentInterface::TYPE_CHARGE);
-            $payment->setCurrency($stripePayment->currency);
+            $payment->setCurrency(strtoupper($stripePayment->currency));
             $payment->setAmount($stripePayment->amount / 100);
 
             if ($customer = $this->customerManager->getRepository()->findOneByPlatformId($stripePayment->customer)) {

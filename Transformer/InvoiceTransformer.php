@@ -80,6 +80,7 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
         $invoice->setStatus(self::MAPPING_STATUSES[$stripeInvoice->status]);
         $invoice->setDate(\DateTime::createFromFormat('U', $stripeInvoice->created));
         $invoice->setTotal($stripeInvoice->total/100);
+        $invoice->setCurrency(strtoupper($stripeInvoice->currency));
 
         return $invoice;
     }

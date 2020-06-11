@@ -41,7 +41,7 @@ class DiscountTransformer extends AbstractPlatformTransformer implements Platfor
         if ($action == 'create') {
             $data['discount'] = [
                 'name' => $discount->getName(),
-                'currency' => $discount->getCurrency(),
+                'currency' => strtolower($discount->getCurrency()),
             ];
 
             switch ($discount->getDue()) {
@@ -96,7 +96,7 @@ class DiscountTransformer extends AbstractPlatformTransformer implements Platfor
 
         $discount->setName($stripeCoupon->name);
         $discount->setDue(self::MAPPING_DUE_DURATION[$stripeCoupon->duration]);
-        $discount->setCurrency($stripeCoupon->currency);
+        $discount->setCurrency(strtoupper($stripeCoupon->currency));
 
         if ($stripeCoupon->amount_off) {
             $discount->setType(DiscountInterface::TYPE_FIXED_AMOUNT);

@@ -31,7 +31,7 @@ class ConceptTransformer extends AbstractPlatformTransformer implements Platform
         if ($action == 'create') {
             $data['concept'] = [
                 'customer' => $concept->getCustomer()->getPlatformId(),
-                'currency' => $concept->getCurrency(),
+                'currency' => strtolower($concept->getCurrency()),
                 'description' => $concept->getConcept(),
             ];
 
@@ -71,7 +71,7 @@ class ConceptTransformer extends AbstractPlatformTransformer implements Platform
         $concept->setTotal($stripeConcept->amount/100);
         $concept->setPrice($stripeConcept->unit_amount/100);
         $concept->setQuantity($stripeConcept->quantity);
-        $concept->setCurrency($stripeConcept->currency);
+        $concept->setCurrency(strtoupper($stripeConcept->currency));
 
         // TODO set currency
         // TODO set date
