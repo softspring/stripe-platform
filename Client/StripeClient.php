@@ -11,6 +11,7 @@ use Stripe\ApiOperations\Delete;
 use Stripe\ApiOperations\Update;
 use Stripe\Card;
 use Stripe\Charge;
+use Stripe\Collection;
 use Stripe\Coupon;
 use Stripe\Customer;
 use Stripe\Exception\ApiConnectionException;
@@ -18,6 +19,7 @@ use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
 use Stripe\Invoice;
 use Stripe\InvoiceItem;
+use Stripe\Plan;
 use Stripe\Refund;
 use Stripe\Source;
 use Stripe\Stripe;
@@ -53,6 +55,43 @@ class StripeClient
         $this->apiSecretKey = $apiSecretKey;
         $this->webhookSigningSecret = $webhookSigningSecret;
         $this->logger = $logger;
+    }
+
+    public function planCreate($params = null, $options = null): Plan
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Plan::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function planRetrieve($id, $opts = null): Plan
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Plan::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    /**
+     * @param null|array $params
+     * @param null|array|string $opts
+     *
+     * @return Collection|Plan[]
+     * @throws PlatformException
+     */
+    public function planList($params = null, $opts = null): Collection
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Plan::all($params, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
     }
 
     public function subscriptionCreate($params = null, $options = null): Subscription

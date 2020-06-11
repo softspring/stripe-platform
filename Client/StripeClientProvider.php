@@ -29,16 +29,16 @@ class StripeClientProvider
         $this->logger = $logger;
     }
 
-    public function getClient($dbObject): StripeClient
+    public function getClient($dbObject = null): StripeClient
     {
         $credentials = $this->getCredentials($dbObject);
         return new StripeClient($credentials->getApiSecretKey(), $credentials->getWebhookSigningSecret(), $this->logger);
     }
 
-    protected function getCredentials($dbObject): StripeCredentials
+    protected function getCredentials($dbObject = null): StripeCredentials
     {
         /** @var StripeCredentials $credentials */
-        $credentials = $this->credentialsProvider->getCredentials($dbObject);
+        $credentials = $dbObject ? $this->credentialsProvider->getCredentials($dbObject) : $this->credentialsProvider->getPlatformCredentials('stripe');
 
         return $credentials;
     }
