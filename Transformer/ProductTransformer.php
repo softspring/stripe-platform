@@ -12,23 +12,23 @@ use Stripe\Product;
 class ProductTransformer extends AbstractPlatformTransformer implements PlatformTransformerInterface
 {
     /**
-     * @var ProductManagerInterface
+     * @var ProductManagerInterface|null
      */
     protected $productManager;
 
     /**
      * ProductTransformer constructor.
      *
-     * @param ProductManagerInterface $productManager
+     * @param ProductManagerInterface|null $productManager
      */
-    public function __construct(ProductManagerInterface $productManager)
+    public function __construct(?ProductManagerInterface $productManager)
     {
         $this->productManager = $productManager;
     }
 
     public function supports($product): bool
     {
-        return $product instanceof ProductInterface;
+        return $this->productManager && $product instanceof ProductInterface;
     }
 
     /**
