@@ -37,9 +37,9 @@ class ConceptTransformer extends AbstractPlatformTransformer implements Platform
 
             if ($concept->getQuantity() && $concept->getPrice()) {
                 $data['concept']['quantity'] = $concept->getQuantity();
-                $data['concept']['unit_amount'] = (int) ($concept->getPrice()*100);
+                $data['concept']['unit_amount'] = (int) round($concept->getPrice()*100);
             } else {
-                $data['concept']['amount'] = (int) ($concept->getTotal()*100);
+                $data['concept']['amount'] = (int) round($concept->getTotal()*100);
             }
 
             if ($concept->getInvoice() && $concept->getInvoice()->getPlatformId()) {

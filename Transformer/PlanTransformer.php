@@ -61,7 +61,7 @@ class PlanTransformer extends AbstractPlatformTransformer implements PlatformTra
 
             $data['plan']['nickname'] = $plan->getName();
             $data['plan']['active'] = $plan->isActive();
-            $data['plan']['amount'] = (int) ($plan->getAmount()*100);
+            $data['plan']['amount'] = (int) round($plan->getAmount()*100);
             $data['plan']['currency'] = strtolower($plan->getCurrency());
             $data['plan']['interval'] = array_search($plan->getInterval(), self::INTERVAL_STATUSES);
             $data['plan']['interval_count'] = $plan->getIntervalCount();
