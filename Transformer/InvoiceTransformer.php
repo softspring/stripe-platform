@@ -45,6 +45,7 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
             } else {
                 // invoice now
                 $data['invoice']['collection_method'] = 'charge_automatically';
+                $data['invoice']['auto_advance'] = true;
             }
 
             // description
