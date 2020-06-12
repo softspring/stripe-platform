@@ -69,7 +69,7 @@ class DiscountTransformer extends AbstractPlatformTransformer implements Platfor
                     break;
 
                 case DiscountInterface::TYPE_FIXED_AMOUNT:
-                    $data['discount']['amount_off'] = $discount->getValue() * 100;
+                    $data['discount']['amount_off'] = (int) round($discount->getValue() * 100);
                     break;
             }
         }

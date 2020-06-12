@@ -81,7 +81,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
                 $data['charge'] = [
                     'customer' => $customer->getPlatformId(),
                     'source' => $source->getPlatformId(),
-                    'amount' => (int) ($payment->getAmount() * 100),
+                    'amount' => (int) round($payment->getAmount() * 100),
                     'currency' => strtolower($payment->getCurrency()),
                 ];
 
@@ -94,7 +94,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
             case PaymentInterface::TYPE_REFUND:
                 $data['refund'] = [
                     'charge' => $payment->getRefundPayment()->getPlatformId(),
-                    'amount' => (int) ($payment->getAmount() * 100),
+                    'amount' => (int) round($payment->getAmount() * 100),
                 ];
                 break;
 
