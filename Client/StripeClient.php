@@ -20,6 +20,7 @@ use Stripe\Exception\InvalidRequestException;
 use Stripe\Invoice;
 use Stripe\InvoiceItem;
 use Stripe\Plan;
+use Stripe\Product;
 use Stripe\Refund;
 use Stripe\Source;
 use Stripe\Stripe;
@@ -89,6 +90,43 @@ class StripeClient
         try {
             Stripe::setApiKey($this->apiSecretKey);
             return Plan::all($params, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function productCreate($params = null, $options = null): Product
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Product::create($params, $options);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function productRetrieve($id, $opts = null): Product
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Product::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    /**
+     * @param null|array $params
+     * @param null|array|string $opts
+     *
+     * @return Collection|Product[]
+     * @throws PlatformException
+     */
+    public function productList($params = null, $opts = null): Collection
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Product::all($params, $opts);
         } catch (\Exception $e) {
             throw $this->transformException($e);
         }
