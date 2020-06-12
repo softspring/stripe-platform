@@ -6,7 +6,9 @@ use Softspring\CustomerBundle\Manager\CustomerManagerInterface;
 use Softspring\CustomerBundle\Manager\SourceManagerInterface;
 use Softspring\CustomerBundle\Model\CustomerInterface;
 use Softspring\CustomerBundle\Model\SourceInterface;
+use Softspring\PaymentBundle\Manager\InvoiceManagerInterface;
 use Softspring\PaymentBundle\Model\PaymentInterface;
+use Softspring\PaymentBundle\Model\PaymentRefersInvoiceInterface;
 use Softspring\PlatformBundle\Exception\PlatformException;
 use Softspring\PlatformBundle\Exception\TransformException;
 use Softspring\PlatformBundle\Model\PlatformObjectInterface;
@@ -33,15 +35,22 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
     protected $sourceManager;
 
     /**
+     * @var InvoiceManagerInterface
+     */
+    protected $invoiceManager;
+
+    /**
      * PaymentTransformer constructor.
      *
      * @param CustomerManagerInterface $customerManager
      * @param SourceManagerInterface   $sourceManager
+     * @param InvoiceManagerInterface  $invoiceManager
      */
-    public function __construct(CustomerManagerInterface $customerManager, SourceManagerInterface $sourceManager)
+    public function __construct(CustomerManagerInterface $customerManager, SourceManagerInterface $sourceManager, InvoiceManagerInterface $invoiceManager)
     {
         $this->customerManager = $customerManager;
         $this->sourceManager = $sourceManager;
+        $this->invoiceManager = $invoiceManager;
     }
 
     public function supports($payment): bool
@@ -123,6 +132,10 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
 
             if ($source = $this->sourceManager->getRepository()->findOneByPlatformId($stripePayment->source->id)) {
                 $payment->setSource($source);
+            }
+
+            if ($payment instanceof PaymentRefersInvoiceInterface && $stripePayment->invoice && !$payment->getInvoice()) {
+                $payment->setInvoice($this->invoiceManager->getRepository()->findOneByPlatformId($stripePayment->invoice));
             }
         }
 
