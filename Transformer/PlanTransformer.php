@@ -87,7 +87,7 @@ class PlanTransformer extends AbstractPlatformTransformer implements PlatformTra
         $this->checkSupports($plan);
         $this->reverseTransformPlatformObject($plan, $stripePlan);
 
-        $plan->setName($stripePlan->nickname);
+        $plan->setName($stripePlan->nickname ?: $stripePlan->id);
         $plan->setCurrency(strtoupper($stripePlan->currency));
         $plan->setAmount($stripePlan->amount/100);
         $plan->setInterval(self::INTERVAL_STATUSES[$stripePlan->interval]);
