@@ -6,6 +6,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Stripe\Collection;
 use Stripe\Customer;
+use Stripe\Invoice;
+use Stripe\InvoiceItem;
 use Stripe\TaxId;
 
 abstract class AbstractStripeAdapterTest extends TestCase
@@ -37,6 +39,26 @@ abstract class AbstractStripeAdapterTest extends TestCase
     protected function createStripeCustomerObject(array $properties)
     {
         return $this->createStripeObject(Customer::class, $properties);
+    }
+
+    /**
+     * @param array $properties
+     *
+     * @return InvoiceItem|MockObject
+     */
+    protected function createStripeInvoiceItemObject(array $properties)
+    {
+        return $this->createStripeObject(InvoiceItem::class, $properties);
+    }
+
+    /**
+     * @param array $properties
+     *
+     * @return InvoiceItem|MockObject
+     */
+    protected function createStripeInvoiceObject(array $properties)
+    {
+        return $this->createStripeObject(Invoice::class, $properties);
     }
 
     /**
