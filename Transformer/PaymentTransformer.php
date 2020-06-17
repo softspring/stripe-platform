@@ -126,16 +126,18 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
             $payment->setCurrency(strtoupper($stripePayment->currency));
             $payment->setAmount($stripePayment->amount / 100);
 
-            if ($customer = $this->customerManager->getRepository()->findOneByPlatformId($stripePayment->customer)) {
+            /** @var CustomerInterface|null $customer */
+            if ($customer = $this->customerManager->getRepository()->findOneBy(['platformId' => $stripePayment->customer])) {
                 $payment->setCustomer($customer);
             }
 
-            if ($source = $this->sourceManager->getRepository()->findOneByPlatformId($stripePayment->source->id)) {
+            /** @var SourceInterface|null $source */
+            if ($source = $this->sourceManager->getRepository()->findOneBy(['platformId' => $stripePayment->source->id])) {
                 $payment->setSource($source);
             }
 
             if ($payment instanceof PaymentRefersInvoiceInterface && $stripePayment->invoice && !$payment->getInvoice()) {
-                $payment->setInvoice($this->invoiceManager->getRepository()->findOneByPlatformId($stripePayment->invoice));
+                $payment->setInvoice($this->invoiceManager->getRepository()->findOneBy(['platformId' => $stripePayment->invoice]));
             }
         }
 
@@ -144,6 +146,7 @@ class PaymentTransformer extends AbstractPlatformTransformer implements Platform
             $payment->setStatus(self::MAPPING_STATUSES[$stripePayment->status]);
             $payment->setDate(\DateTime::createFromFormat('U', $stripePayment->created));
 
+            // TODO FIND REFUND PAYMENT
             // $payment->setRefundPayment();
         }
 

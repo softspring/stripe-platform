@@ -4,7 +4,6 @@ namespace Softspring\PlatformBundle\Stripe\Tests\Transformer;
 
 use Softspring\CustomerBundle\Model\CustomerInterface;
 use Softspring\PlatformBundle\Stripe\Tests\Examples\AddressExample;
-use Softspring\PlatformBundle\Stripe\Tests\Examples\CustomerBaseExample;
 use Softspring\PlatformBundle\Stripe\Tests\Examples\CustomerFullExample;
 use Softspring\PlatformBundle\Stripe\Transformer\CustomerTransformer;
 use PHPUnit\Framework\TestCase;
