@@ -36,7 +36,7 @@ class SubscriptionListener implements EventSubscriberInterface
             SfsSubscriptionEvents::SUBSCRIPTION_UNCANCEL_RENOVATION => 'onUncancelRenovation',
             SfsSubscriptionEvents::SUBSCRIPTION_UPGRADE => 'onUpgrade',
             SfsSubscriptionEvents::SUBSCRIPTION_CANCEL => 'onCancel',
-            SfsSubscriptionEvents::SUBSCRIPTION_SYNC => 'onSync',
+            SfsSubscriptionEvents::SUBSCRIPTION_SYNC => [['onSync', 255]],
         ];
     }
 
