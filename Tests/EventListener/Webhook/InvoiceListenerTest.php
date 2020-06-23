@@ -6,11 +6,14 @@ use Doctrine\ORM\EntityRepository;
 use PHPUnit\Framework\MockObject\MockObject;
 use Softspring\PaymentBundle\Manager\InvoiceManager;
 use Softspring\PaymentBundle\Manager\InvoiceManagerInterface;
+use Softspring\PaymentBundle\Manager\PaymentManager;
+use Softspring\PlatformBundle\Stripe\Adapter\PaymentAdapter;
 use Softspring\PlatformBundle\Stripe\Event\StripeWebhookEvent;
 use Softspring\PlatformBundle\Stripe\EventListener\Webhook\InvoiceListener;
 use PHPUnit\Framework\TestCase;
 use Softspring\PlatformBundle\Stripe\Tests\Examples\InvoiceExample;
 use Softspring\PlatformBundle\Stripe\Transformer\InvoiceTransformer;
+use Softspring\PlatformBundle\Stripe\Transformer\PaymentTransformer;
 use Stripe\Invoice;
 use Stripe\Event;
 
@@ -57,10 +60,15 @@ class InvoiceListenerTest extends TestCase
         $stripeEvent->data->object->status = 'open';
         $stripeEvent->data->object->currency = 'usd';
         $stripeEvent->data->object->total = 1111;
+        $stripeEvent->data->object->number = 'INVOICE-0001';
+        $stripeEvent->data->object->charge = null;
 
         $event = new StripeWebhookEvent('invoice.created', $stripeEvent);
 
-        $eventListener = new InvoiceListener($this->invoiceManager, new InvoiceTransformer());
+        $paymentManager = $this->createMock(PaymentManager::class);
+        $paymentAdapter = $this->createMock(PaymentAdapter::class);
+        $paymentTransformer = $this->createMock(PaymentTransformer::class);
+        $eventListener = new InvoiceListener($this->invoiceManager, new InvoiceTransformer($paymentManager, $paymentAdapter, $paymentTransformer));
 
         $eventListener->onInvoiceCreateOrUpdate($event);
     }
@@ -77,10 +85,15 @@ class InvoiceListenerTest extends TestCase
         $stripeEvent->data->object = new Invoice('cus_test');
         $stripeEvent->data->object->created = time();
         $stripeEvent->data->object->livemode = false;
+        $stripeEvent->data->object->number = 'INVOICE-0001';
+        $stripeEvent->data->object->charge = null;
 
         $event = new StripeWebhookEvent('invoice.deleted', $stripeEvent);
 
-        $eventListener = new InvoiceListener($this->invoiceManager, new InvoiceTransformer());
+        $paymentManager = $this->createMock(PaymentManager::class);
+        $paymentAdapter = $this->createMock(PaymentAdapter::class);
+        $paymentTransformer = $this->createMock(PaymentTransformer::class);
+        $eventListener = new InvoiceListener($this->invoiceManager, new InvoiceTransformer($paymentManager, $paymentAdapter, $paymentTransformer));
 
         $eventListener->onInvoiceDeleted($event);
     }
@@ -99,7 +112,10 @@ class InvoiceListenerTest extends TestCase
 
         $event = new StripeWebhookEvent('invoice.deleted', $stripeEvent);
 
-        $eventListener = new InvoiceListener($this->invoiceManager, new InvoiceTransformer());
+        $paymentManager = $this->createMock(PaymentManager::class);
+        $paymentAdapter = $this->createMock(PaymentAdapter::class);
+        $paymentTransformer = $this->createMock(PaymentTransformer::class);
+        $eventListener = new InvoiceListener($this->invoiceManager, new InvoiceTransformer($paymentManager, $paymentAdapter, $paymentTransformer));
 
         $this->assertNull($eventListener->onInvoiceDeleted($event));
     }

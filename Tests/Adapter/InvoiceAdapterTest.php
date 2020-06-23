@@ -2,16 +2,18 @@
 
 namespace Softspring\PlatformBundle\Stripe\Tests\Adapter;
 
+use Softspring\PaymentBundle\Manager\PaymentManager;
 use Softspring\PaymentBundle\Model\InvoiceInterface;
 use Softspring\PlatformBundle\Stripe\Adapter\ConceptAdapter;
 use Softspring\PlatformBundle\Stripe\Adapter\InvoiceAdapter;
+use Softspring\PlatformBundle\Stripe\Adapter\PaymentAdapter;
 use Softspring\PlatformBundle\Stripe\Client\StripeClient;
 use Softspring\PlatformBundle\Stripe\Client\StripeClientProvider;
 use Softspring\PlatformBundle\Stripe\Tests\Examples\ConceptExample;
 use Softspring\PlatformBundle\Stripe\Tests\Examples\InvoiceExample;
 use Softspring\PlatformBundle\Stripe\Tests\Examples\CustomerFullExample;
 use Softspring\PlatformBundle\Stripe\Transformer\InvoiceTransformer;
-use Stripe\Customer;
+use Softspring\PlatformBundle\Stripe\Transformer\PaymentTransformer;
 use Stripe\Invoice;
 
 class InvoiceAdapterTest extends AbstractStripeAdapterTest
@@ -38,8 +40,11 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
         $this->stripeClientProvider = $this->createMock(StripeClientProvider::class);
         $this->stripeClientProvider->method('getClient')->willReturn($this->stripeClient);
 
+        $paymentManager = $this->createMock(PaymentManager::class);
+        $paymentAdapter = $this->createMock(PaymentAdapter::class);
+        $paymentTransformer = $this->createMock(PaymentTransformer::class);
         $conceptAdapter = $this->createMock(ConceptAdapter::class);
-        $this->adapter = new InvoiceAdapter($this->stripeClientProvider, new InvoiceTransformer(),  $conceptAdapter, null);
+        $this->adapter = new InvoiceAdapter($this->stripeClientProvider, new InvoiceTransformer($paymentManager, $paymentAdapter, $paymentTransformer),  $conceptAdapter, null);
     }
 
     public function testGetExisting()
@@ -49,11 +54,13 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
 
         $this->stripeClient->method('invoiceRetrieve')->will($this->returnValue($this->createStripeInvoiceObject([
             'id' => 'in_test',
+            'number' => 'INVOICE-0001',
             'livemode' => false,
             'created' => ($created = new \DateTime('now'))->format('U'),
             'status' => 'open',
             'total' => 1099,
             'currency' => 'usd',
+            'charge' => null,
         ])));
 
         $stripeInvoice = $this->adapter->get($invoice);
@@ -66,6 +73,7 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
         $this->assertEquals('USD', $invoice->getCurrency());
         $this->assertEquals(InvoiceInterface::STATUS_PENDING, $invoice->getStatus());
         $this->assertEquals('pending', $invoice->getStatusString());
+        $this->assertEquals('INVOICE-0001', $invoice->getNumber());
     }
 
     public function testCreate()
@@ -79,11 +87,13 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
 
         $this->stripeClient->method('invoiceCreate')->will($this->returnValue($this->createStripeInvoiceObject([
             'id' => 'in_test',
+            'number' => 'INVOICE-0001',
             'livemode' => false,
             'created' => ($created = new \DateTime('now'))->format('U'),
             'status' => 'open',
             'total' => 1099,
             'currency' => 'usd',
+            'charge' => null,
         ])));
 
         $this->adapter->create($invoice);
@@ -95,5 +105,6 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
         $this->assertEquals('USD', $invoice->getCurrency());
         $this->assertEquals(InvoiceInterface::STATUS_PENDING, $invoice->getStatus());
         $this->assertEquals('pending', $invoice->getStatusString());
+        $this->assertEquals('INVOICE-0001', $invoice->getNumber());
     }
 }
