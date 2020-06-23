@@ -67,7 +67,7 @@ class SubscriptionListener implements EventSubscriberInterface
             return;
         }
 
-        // TODO
+        $adapter->update($event->getSubscription());
     }
 
     public function onUnsubscribe(SubscriptionEvent $event)

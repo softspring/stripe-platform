@@ -68,6 +68,27 @@ class SubscriptionAdapter implements SubscriptionAdapterInterface
      * @return Subscription
      * @throws PlatformException
      */
+    public function update(SubscriptionInterface $subscription)
+    {
+        $data = $this->subscriptionTransformer->transform($subscription, 'update');
+
+        $subscriptionStripe = $this->get($subscription);
+
+        $subscriptionStripe->updateAttributes($data['subscription']);
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->save($subscriptionStripe);
+
+        $this->logger && $this->logger->info(sprintf('Stripe updated subscription %s', $subscriptionStripe->id));
+        $this->subscriptionTransformer->reverseTransform($subscriptionStripe, $subscription);
+
+        return $subscriptionStripe;
+    }
+
+    /**
+     * @param SubscriptionInterface|PlatformObjectInterface $subscription
+     *
+     * @return Subscription
+     * @throws PlatformException
+     */
     public function get(SubscriptionInterface $subscription)
     {
         $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->subscriptionRetrieve([
@@ -88,20 +109,20 @@ class SubscriptionAdapter implements SubscriptionAdapterInterface
      */
     public function upgradePlan(SubscriptionInterface $subscription, PlanInterface $fromPlan, PlanInterface $toPlan)
     {
-        $stripeSubscription = $this->get($subscription);
+        $subscriptionStripe = $this->get($subscription);
 
         $data = $this->subscriptionTransformer->transform($subscription, 'upgrade', [
-            'stripeSubscription' => $stripeSubscription,
+            'stripeSubscription' => $subscriptionStripe,
             'fromPlan' => $fromPlan,
             'toPlan' => $toPlan,
         ]);
 
-        $stripeSubscription->updateAttributes($data['subscription']);
-        $stripeSubscription = $this->stripeClientProvider->getClient($subscription)->save($stripeSubscription);
+        $subscriptionStripe->updateAttributes($data['subscription']);
+        $subscriptionStripe = $this->stripeClientProvider->getClient($subscription)->save($subscriptionStripe);
 
         $this->logger && $this->logger->info(sprintf('Stripe %s subscription upgraded plan to %s', $subscription->getPlatformId(), $toPlan->getPlatformId()));
 
-        return $stripeSubscription;
+        return $subscriptionStripe;
     }
 
     /**

@@ -78,6 +78,7 @@ class SubscriptionTransformer extends AbstractPlatformTransformer
                         'plan' => $item->getPlan()->getPlatformId(),
                         'quantity' => $item->getQuantity(),
                     ];
+                    $data['subscription']['proration_behavior'] = 'create_prorations';
                 }
             }
         } elseif ($subscription instanceof SubscriptionSinglePlanInterface) {
