@@ -14,6 +14,7 @@ use Stripe\Charge;
 use Stripe\Collection;
 use Stripe\Coupon;
 use Stripe\Customer;
+use Stripe\Event;
 use Stripe\Exception\ApiConnectionException;
 use Stripe\Exception\CardException;
 use Stripe\Exception\InvalidRequestException;
@@ -297,6 +298,16 @@ class StripeClient
         try {
             Stripe::setApiKey($this->apiSecretKey);
             return Coupon::retrieve($id, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
+    }
+
+    public function eventRetrieve($id, $opts = null): Event
+    {
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Event::retrieve($id, $opts);
         } catch (\Exception $e) {
             throw $this->transformException($e);
         }
