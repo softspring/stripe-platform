@@ -2,6 +2,8 @@
 
 namespace Softspring\PlatformBundle\Stripe\Transformer;
 
+use Softspring\CustomerBundle\Manager\CustomerManagerInterface;
+use Softspring\CustomerBundle\Model\CustomerInterface;
 use Softspring\PaymentBundle\Manager\PaymentManagerInterface;
 use Softspring\PaymentBundle\Model\InvoiceInterface;
 use Softspring\PaymentBundle\Model\PaymentInterface;
@@ -27,6 +29,11 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
     protected $paymentManager;
 
     /**
+     * @var CustomerManagerInterface
+     */
+    protected $customerManager;
+
+    /**
      * @var PaymentAdapter|null
      */
     protected $paymentAdapter;
@@ -40,12 +47,14 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
      * InvoiceTransformer constructor.
      *
      * @param PaymentManagerInterface|null $paymentManager
+     * @param CustomerManagerInterface     $customerManager
      * @param PaymentAdapter|null          $paymentAdapter
      * @param PaymentTransformer|null      $paymentTransformer
      */
-    public function __construct(?PaymentManagerInterface $paymentManager, ?PaymentAdapter $paymentAdapter, ?PaymentTransformer $paymentTransformer)
+    public function __construct(?PaymentManagerInterface $paymentManager, CustomerManagerInterface $customerManager, ?PaymentAdapter $paymentAdapter, ?PaymentTransformer $paymentTransformer)
     {
         $this->paymentManager = $paymentManager;
+        $this->customerManager = $customerManager;
         $this->paymentAdapter = $paymentAdapter;
         $this->paymentTransformer = $paymentTransformer;
     }
@@ -116,6 +125,11 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
         $invoice->setDate(\DateTime::createFromFormat('U', $stripeInvoice->created));
         $invoice->setTotal($stripeInvoice->total/100);
         $invoice->setCurrency(strtoupper($stripeInvoice->currency));
+
+        /** @var CustomerInterface|null $customer */
+        if ($customer = $this->customerManager->getRepository()->findOneBy(['platformId' => $stripeInvoice->customer])) {
+            $invoice->setCustomer($customer);
+        }
 
         $stripeChargeId = $stripeInvoice->charge;
         if ($this->paymentTransformer && $stripeChargeId) {
