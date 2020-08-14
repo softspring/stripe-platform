@@ -2,6 +2,7 @@
 
 namespace Softspring\PlatformBundle\Stripe\Tests\Adapter;
 
+use Softspring\CustomerBundle\Manager\CustomerManager;
 use Softspring\PaymentBundle\Manager\PaymentManager;
 use Softspring\PaymentBundle\Model\InvoiceInterface;
 use Softspring\PlatformBundle\Stripe\Adapter\ConceptAdapter;
@@ -41,10 +42,11 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
         $this->stripeClientProvider->method('getClient')->willReturn($this->stripeClient);
 
         $paymentManager = $this->createMock(PaymentManager::class);
+        $customerManager = $this->createMock(CustomerManager::class);
         $paymentAdapter = $this->createMock(PaymentAdapter::class);
         $paymentTransformer = $this->createMock(PaymentTransformer::class);
         $conceptAdapter = $this->createMock(ConceptAdapter::class);
-        $this->adapter = new InvoiceAdapter($this->stripeClientProvider, new InvoiceTransformer($paymentManager, $paymentAdapter, $paymentTransformer),  $conceptAdapter, null);
+        $this->adapter = new InvoiceAdapter($this->stripeClientProvider, new InvoiceTransformer($paymentManager, $customerManager, $paymentAdapter, $paymentTransformer),  $conceptAdapter, null);
     }
 
     public function testGetExisting()
@@ -61,6 +63,7 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
             'total' => 1099,
             'currency' => 'usd',
             'charge' => null,
+            'customer' => null,
         ])));
 
         $stripeInvoice = $this->adapter->get($invoice);
@@ -94,6 +97,7 @@ class InvoiceAdapterTest extends AbstractStripeAdapterTest
             'total' => 1099,
             'currency' => 'usd',
             'charge' => null,
+            'customer' => null,
         ])));
 
         $this->adapter->create($invoice);
