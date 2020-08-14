@@ -138,16 +138,16 @@ class InvoiceTransformer extends AbstractPlatformTransformer implements Platform
                 return $payment->getPlatformId() == $stripeChargeId;
             })->first();
 
-            if ($charge instanceof PaymentInterface) {
-                $this->paymentAdapter->get($charge);
-            } else {
+            if (! $charge instanceof PaymentInterface) {
                 /** @var PlatformObjectInterface|PaymentInterface $charge */
                 $charge = $this->paymentManager->createEntity();
                 $charge->setType(PaymentInterface::TYPE_CHARGE);
                 $charge->setPlatformId($stripeChargeId);
-                $this->paymentAdapter->get($charge);
-                $invoice->addPayment($charge);
             }
+
+            $this->paymentAdapter->get($charge); // sync with stripe
+            $charge->setPlatformWebhooked(true); // do not sync again because of entity events
+            $invoice->addPayment($charge);
         }
 
         return $invoice;
