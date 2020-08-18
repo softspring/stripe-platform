@@ -94,16 +94,11 @@ class CustomerTransformer extends AbstractPlatformTransformer implements Platfor
         }
 
         $this->checkSupports($customer);
+        $this->reverseTransformPlatformObject($customer, $stripeCustomer);
 
         if ($customer instanceof PlatformByObjectInterface) {
             $customer->setPlatform('stripe');
         }
-
-        $customer->setPlatformId($stripeCustomer->id);
-        $customer->setTestMode(!$stripeCustomer->livemode);
-        $customer->setPlatformLastSync(\DateTime::createFromFormat('U', $stripeCustomer->created)); // TODO update last sync date
-        $customer->setPlatformConflict(false);
-        $customer->setPlatformData($stripeCustomer->toArray());
 
         return $customer;
     }
