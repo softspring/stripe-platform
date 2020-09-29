@@ -105,7 +105,7 @@ class PlanAdapter implements PlanAdapterInterface
      */
     public function list(): Collection
     {
-        $plans = $this->stripeClientProvider->getClient(null)->planList();
+        $plans = $this->stripeClientProvider->getClient(null)->planList(['expand' => ['data.tiers']]);
 
         return new ArrayCollection($plans->getIterator()->getArrayCopy());
     }
