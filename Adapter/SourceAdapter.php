@@ -65,7 +65,7 @@ class SourceAdapter implements SourceAdapterInterface
         $data = $this->sourceTransformer->transform($source, 'create');
 
         /** @var Source $sourceStripe */
-        $sourceStripe = $this->stripeClientProvider->getClient($customer)->sourceCreate($customerStripe, $data);
+        $sourceStripe = $this->stripeClientProvider->getClient($customer)->sourceCreate($customerStripe->id, $data);
 
         $this->sourceTransformer->reverseTransform($sourceStripe, $source);
 

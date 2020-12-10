@@ -333,15 +333,20 @@ class StripeClient
     }
 
     /**
-     * @param Customer $customer
+     * @param string   $customerId
      * @param null     $params
      * @param null     $opts
      *
      * @return array|\Stripe\StripeObject
      */
-    public function sourceCreate(Customer $customer, $params = null, $opts = null)
+    public function sourceCreate($customerId, $params = null, $opts = null)
     {
-        return $customer->sources->create($params, $opts);
+        try {
+            Stripe::setApiKey($this->apiSecretKey);
+            return Customer::createSource($customerId, $params, $opts);
+        } catch (\Exception $e) {
+            throw $this->transformException($e);
+        }
     }
 
     /**
