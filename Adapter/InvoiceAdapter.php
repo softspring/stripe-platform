@@ -64,6 +64,8 @@ class InvoiceAdapter implements InvoiceAdapterInterface
             $this->conceptAdapter->create($concept);
         }
         $invoiceStripe = $this->stripeClientProvider->getClient($invoice)->invoiceCreate($data['invoice']);
+        $invoiceStripe->finalizeInvoice();
+        $invoiceStripe->pay();
 
         $this->logger && $this->logger->info(sprintf('Stripe created invoice %s', $invoiceStripe->id));
 
